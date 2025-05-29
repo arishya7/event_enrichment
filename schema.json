@@ -1,0 +1,172 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://example.com/schemas/event.schema.json",
+    "title": "Web scraping event schema",
+    "description": "Schema for scraped event content. Utilised GCP for database storage, hosting, and image processing.",
+    "type": "object",
+    "required": [
+        "pid",
+        "title",
+        "description",
+        "start_date",
+        "end_date",
+        "venue",
+        "price",
+        "images",
+        "source",
+        "metadata"
+    ],
+    "properties": {
+        "pid": {
+            "type": "string",
+            "description": "Primary ID, RSS <guid>. Use for unique identification of events."
+        },
+        "title": {
+            "type": "string"
+        },
+        "description": {
+            "type": "object",
+            "required": [
+                "original",
+                "blurb"
+            ],
+            "properties": {
+                "original": {
+                    "type": "string"
+                },
+                "blurb": {
+                    "type": "string"
+                }
+            }
+        },
+        "start_date": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "end_date": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "booking_url": {
+            "type": "string",
+            "format": "uri"
+        },
+        "organiser": {
+            "type": "string"
+        },
+        "venue": {
+            "type": "object",
+            "required": [
+                "name",
+                "address",
+                "lat",
+                "lng"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "address": {
+                    "type": "string"
+                },
+                "lat": {
+                    "type": "float"
+                },
+                "lng": {
+                    "type": "float"
+                }
+            }
+        },
+        "price": {
+            "type": "object",
+            "required": [
+                "amount",
+                "currency",
+                "is_free"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "float"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "is_free": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "images": {
+            "type": "object",
+            "required": [
+                "original_website",
+                "google_maps"
+            ],
+            "properties": {
+                "original_website": {
+                    "type": "array",
+                    "minItems": 0,
+                    "maxItems": 3,
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Firestore URI for source-site-downloaded image"
+                    }
+                },
+                "google_maps": {
+                    "type": "array",
+                    "minItems": 0,
+                    "maxItems": 3,
+                    "uniqueItems": true,
+                    "items": {
+                        "type": "string",
+                        "format": "uri",
+                        "description": "Firestore URI for downloaded Google Maps Place Photo API image"
+                    }
+                }
+            }
+        },
+        "source": {
+            "type": "object",
+            "required": [
+                "site",
+                "source_link",
+                "guid",
+                "scraped_on"
+            ],
+            "properties": {
+                "site": {
+                    "type": "string"
+                },
+                "source_link": {
+                    "type": "string",
+                    "format": "uri"
+                },
+                "guid": {
+                    "type": "string"
+                },
+                "scraped_on": {
+                    "type": "string",
+                    "format": "date-time"
+                }
+            }
+        },
+        "metadata": {
+            "type": "object",
+            "required": [
+                "last_updated"
+            ],
+            "properties": {
+                "editor_notes": {
+                    "type": "string"
+                },
+                "last_updated": {
+                    "type": "string",
+                    "format": "date-time"
+                }
+            }
+        }
+    },
+    "additionalProperties": false
+}
