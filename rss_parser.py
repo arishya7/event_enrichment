@@ -76,6 +76,9 @@ def parse_rss_file(file_path: str) -> List[Dict]:
             all_text = ET.tostring(item, encoding='unicode')
             urls = extract_urls(all_text)
             
+            # Extract GUID 
+            guid = item.findtext('guid', '')
+
             # Create article dictionary
             article = {
                 'title': title,
@@ -83,7 +86,8 @@ def parse_rss_file(file_path: str) -> List[Dict]:
                 'publication_date': pub_date,
                 'categories': categories,
                 'content': content,
-                'urls': urls
+                'urls': urls,
+                'guid': guid
             }
             
             articles.append(article)

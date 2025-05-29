@@ -20,23 +20,12 @@ schema = """
         "start_date": {"type": "string"},
         "end_date": {"type": "string"},
         "venue": {"type": "string"},
-        "organiser": {"type": "string"}
+        "organiser": {"type": "string"},
+        "url": {"type": "string"}
     },
-    "required": ["title", "description", "price", "is_free", "start_date", "end_date", "venue", "organiser"]
+    "required": ["title", "description", "price", "is_free", "start_date", "end_date", "venue", "organiser", "url"]
 }
 """
-
-def truncate_text(text, max_chars=1500):
-    """Truncate text to a maximum number of characters while trying to keep complete sentences."""
-    if len(text) <= max_chars:
-        return text
-    
-    # Try to find the last sentence boundary before max_chars
-    truncated = text[:max_chars]
-    last_period = truncated.rfind('.')
-    if last_period > 0:
-        return truncated[:last_period + 1]
-    return truncated
 
 def process_rss_entries(json_file_path):
     # Check for Hugging Face API token
@@ -45,7 +34,7 @@ def process_rss_entries(json_file_path):
         raise ValueError("Please set HUGGINGFACE_API_TOKEN in your .env file")
     
     # Read the JSON file
-    with open(json_file_path, 'r') as file:
+    with open(json_file_path, 'r', encoding='utf-8') as file:
         rss_data = json.load(file)
     
     # Initialize the Hugging Face client with API token
@@ -64,13 +53,14 @@ def process_rss_entries(json_file_path):
             continue
             
         # Create a prompt from the entry content
-        prompt = f"""Extract event information from the following text and format it as JSON. If the text does not contain event information, return null.
+        prompt = f"""
+        Extract event information from the following text and format it as JSON. If the text does not contain event information, return null.
 The JSON should follow this schema:
 {schema}
 
 Text to analyze:
 Title: {title}
-Content: {truncate_text(content, 1000)}
+Content: {content}
 
 Return only valid JSON that matches the schema, or null if no event information is found.
 """
