@@ -1,10 +1,127 @@
 import xml.etree.ElementTree as ET
 import re
-from typing import Dict, List
+from typing import Dict, List, Set
 from html import unescape
 import os
 import json
 from datetime import datetime
+from pathlib import Path
+from urllib.parse import urlparse, parse_qs
+from bisect import bisect_left
+
+class GuidDatabase:
+    def __init__(self, blog_name: str, database_dir: Path):
+        self.blog_name = blog_name
+        self.database_path = database_dir / f"{blog_name}_guids.json"
+        self.guids = self._load_sorted_guids()
+    
+    def _load_sorted_guids(self) -> List[int]:
+        """Load GUIDs from database as integers."""
+        if self.database_path.exists():
+            with open(self.database_path, 'r', encoding='utf-8') as f:
+                # Convert stored strings to integers
+                return [int(guid) for guid in json.load(f)]
+        return []
+    
+    def save(self):
+        """Save GUIDs to database as strings for JSON compatibility."""
+        with open(self.database_path, 'w', encoding='utf-8') as f:
+            # Convert integers to strings for JSON storage
+            json.dump([str(guid) for guid in self.guids], f, indent=2)
+    
+    def contains(self, guid: int) -> bool:
+        """Check if GUID exists using binary search."""
+        i = bisect_left(self.guids, guid)
+        return i != len(self.guids) and self.guids[i] == guid
+    
+    def add(self, guid: int):
+        """Add new GUID maintaining sorted order."""
+        if not self.contains(guid):
+            i = bisect_left(self.guids, guid)
+            self.guids.insert(i, guid)
+    
+    def add_many(self, new_guids: List[int]):
+        """Add multiple GUIDs maintaining sorted order."""
+        for guid in new_guids:
+            self.add(guid)
+
+class MetaDatabase:
+    def __init__(self):
+        self.meta_dir = Path('meta_database')
+        self.meta_dir.mkdir(exist_ok=True)
+        self.guid_dir = self.meta_dir / 'guid_database'
+        self.guid_dir.mkdir(exist_ok=True)
+        self.history_file = self.meta_dir / 'articles_extractor_history.json'
+        # Initialize current run data
+        self.current_run = {
+            'timestamp': datetime.now().isoformat(),
+            'blogs_processed': []
+        }
+        # Cache for GUID databases
+        self.guid_databases = {}
+        
+    def get_guid_database(self, blog_name: str) -> GuidDatabase:
+        """Get or create a GuidDatabase instance for a blog."""
+        if blog_name not in self.guid_databases:
+            self.guid_databases[blog_name] = GuidDatabase(blog_name, self.guid_dir)
+        return self.guid_databases[blog_name]
+            
+    def load_history(self) -> List[Dict]:
+        """Load extraction history."""
+        if self.history_file.exists():
+            with open(self.history_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return []
+    
+    def add_blog_to_current_run(self, blog_name: str, total_articles: int, 
+                               new_articles: int, repeated_articles: int, 
+                               new_guids: List[str]):
+        """Add a blog's extraction data to the current run."""
+        blog_data = {
+            'blog_name': blog_name,
+            'total_articles_processed': total_articles,
+            'new_articles_extracted': new_articles,
+            'repeated_articles': repeated_articles,
+            'new_article_guids': [str(x) for x in sorted(int(guid) for guid in new_guids)]
+        }
+        self.current_run['blogs_processed'].append(blog_data)
+    
+    def save_current_run(self):
+        """Save the current run to extraction history."""
+        # Save all GUID databases - they maintain their own sorted order
+        for guid_db in self.guid_databases.values():
+            guid_db.save()
+            
+        # Save extraction history
+        history = self.load_history()
+        history.append(self.current_run)
+        
+        with open(self.history_file, 'w', encoding='utf-8') as f:
+            json.dump(history, f, indent=2)
+            
+        # Reset current run
+        self.current_run = {
+            'timestamp': datetime.now().isoformat(),
+            'blogs_processed': []
+        }
+
+def extract_post_id(guid: str) -> int:
+    """Extract post ID from GUID URL and convert to integer.
+    
+    Args:
+        guid (str): GUID URL like 'https://www.sassymamasg.com/?p=181842'
+        
+    Returns:
+        int: Post ID number or 0 if no valid post ID found
+    """
+    try:
+        parsed = urlparse(guid)
+        query_params = parse_qs(parsed.query)
+        if 'p' in query_params:
+            return int(query_params['p'][0])
+    except Exception:
+        pass
+    return 0  # Return 0 for invalid GUIDs
 
 def clean_html(html_text: str) -> str:
     """Remove HTML tags and decode HTML entities."""
@@ -46,38 +163,45 @@ def extract_urls(text: str) -> List[str]:
     
     return list(set(clean_urls))  # Remove duplicates
 
-def parse_rss_file(file_path: str) -> List[Dict]:
+def parse_rss_file(file_path: str, blog_name: str, meta_db: MetaDatabase) -> List[Dict]:
     """Parse RSS XML file and extract required information."""
     try:
+        # Get GUID database for this blog
+        guid_db = meta_db.get_guid_database(blog_name)
+        
         # Parse XML file directly
         tree = ET.parse(file_path)
         root = tree.getroot()
         
         articles = []
+        new_guids = []
+        total_articles = 0
+        repeated_articles = 0
         
         # Find all item elements
         for item in root.findall('.//item'):
-            # Extract title
+            total_articles += 1
+            
+            # Extract GUID first and get post ID as integer
+            guid = item.findtext('guid', '')
+            post_id = extract_post_id(guid)
+            
+            # Skip if post ID is 0 (invalid) or already exists in database
+            if post_id == 0 or guid_db.contains(post_id):
+                repeated_articles += 1
+                continue
+                
+            # Add to new GUIDs list
+            new_guids.append(post_id)
+            
+            # Extract other fields
             title = clean_html(item.findtext('title', ''))
-            
-            # Extract content
             content = clean_html(item.findtext('{http://purl.org/rss/1.0/modules/content/}encoded', ''))
-            
-            # Extract author
             author = clean_html(item.findtext('{http://purl.org/dc/elements/1.1/}creator', ''))
-            
-            # Extract publication date
             pub_date = item.findtext('pubDate', '')
-            
-            # Extract categories
             categories = [clean_html(cat.text) for cat in item.findall('category')]
-            
-            # Extract all URLs
             all_text = ET.tostring(item, encoding='unicode')
             urls = extract_urls(all_text)
-            
-            # Extract GUID 
-            guid = item.findtext('guid', '')
 
             # Create article dictionary
             article = {
@@ -87,10 +211,23 @@ def parse_rss_file(file_path: str) -> List[Dict]:
                 'categories': categories,
                 'content': content,
                 'urls': urls,
-                'guid': guid
+                'guid': guid,
+                'post_id': str(post_id)  # Store as string in output for consistency
             }
             
             articles.append(article)
+        
+        # Update GUID database with new GUIDs
+        guid_db.add_many(new_guids)
+        
+        # Add blog data to current run
+        meta_db.add_blog_to_current_run(
+            blog_name=blog_name,
+            total_articles=total_articles,
+            new_articles=len(articles),
+            repeated_articles=repeated_articles,
+            new_guids=[str(x) for x in sorted(new_guids)]  # Convert to strings for JSON output
+        )
         
         return articles
     
@@ -101,39 +238,43 @@ def parse_rss_file(file_path: str) -> List[Dict]:
 def save_to_json(articles: List[Dict], output_file: str):
     """Save articles to a JSON file."""
     # Create output directory if it doesn't exist
-    os.makedirs('RSS_output', exist_ok=True)
-    
-    # Add timestamp to the data
-    output_data = {
-        'timestamp': datetime.now().isoformat(),
-        'article_count': len(articles),
-        'articles': articles
-    }
+    os.makedirs('articles_output', exist_ok=True)
     
     # Save to file
-    output_path = os.path.join('RSS_output', output_file)
+    output_path = os.path.join('articles_output', output_file)
     with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(output_data, f, indent=2, ensure_ascii=False)
+        json.dump(articles, f, indent=2, ensure_ascii=False)
     
     print(f"Saved {len(articles)} articles to {output_path}")
 
 def main():
+    # Initialize meta database
+    meta_db = MetaDatabase()
+    
     # Process XML files from test_RSS directory
     file_mapping = {
-        'RSS_test/theasianparent.xml': 'theasianparent.json',
-        'RSS_test/sassymamasg.xml': 'sassymamasg.json'
+        'RSS_test/theasianparent.xml': ('theasianparent.json', 'theasianparent'),
+        'RSS_test/sassymamasg.xml': ('sassymamasg.json', 'sassymamasg'),
+        'RSS_test/sassymamasg2.xml': ('sassymamasg.json', 'sassymamasg')
     }
     
-    for input_file, output_file in file_mapping.items():
+    for input_file, (output_file, blog_name) in file_mapping.items():
         if not os.path.exists(input_file):
             print(f"File {input_file} not found")
             continue
             
         print(f"\nProcessing {input_file}:")
-        print("-" * 50)
+        print("=" * 50)
         
-        articles = parse_rss_file(input_file)
-        save_to_json(articles, output_file)
+        articles = parse_rss_file(input_file, blog_name, meta_db)
+        if articles:  # Only save if we have new articles
+            save_to_json(articles, output_file)
+            print(f"Found {len(articles)} new articles")
+        else:
+            print("No new articles found")
+    
+    # Save the extraction run after processing all blogs
+    meta_db.save_current_run()
 
 if __name__ == "__main__":
     main() 

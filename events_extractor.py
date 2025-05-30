@@ -120,15 +120,15 @@ def generate(input_string):
         return None
 
 if __name__ == "__main__":
-    # Create event_output directory if it doesn't exist
-    output_dir = Path('event_output')
+    # Create events_output directory if it doesn't exist
+    output_dir = Path('events_output')
     output_dir.mkdir(exist_ok=True)
     
     # Example usage
     blog_website = "sassymamasg"
 
     # Load and process RSS data
-    rss_data = load_rss(f"RSS_output/{blog_website}.json")
+    rss_data = load_rss(f"articles_output/{blog_website}.json")
     articles_ls = extract_article(rss_data)
     result = generate(json.dumps(articles_ls[1]))
     
