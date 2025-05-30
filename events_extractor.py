@@ -38,19 +38,6 @@ def extract_article(rss_data):
     articles = rss_data.get('articles', [])
     return articles
 
-
-def load_credentials():
-    """Load credentials from service account key file."""
-    try:
-        credentials = service_account.Credentials.from_service_account_file(
-            'google_key.json',
-            scopes=['https://www.googleapis.com/auth/cloud-platform']
-        )
-        return credentials
-    except Exception as e:
-        print(f"Error loading credentials: {e}")
-        return None
-
 def generate(input_string):
     # Set up client
     api_key = os.getenv("GEMINI_API_KEY")
@@ -60,18 +47,19 @@ def generate(input_string):
     client = genai.Client(api_key=api_key)
 
     system_instruction = """
-    Based on a input, which came from a online blog in Singapore, give me an output of the events. Some article may have zero, 1 or multiple events.
+    Based on a input, which came from a online blog in Singapore, give me an output of the events. 
+    Some article may have zero, 1 or multiple events.
     The input will also contain some url links extracted from articles. Match the url link to each events as much as possible. 
     If any component of event could not be found, leave the value to NULL. 
     For description of each event, summarise the content from input. Keep it one paragraph.
+    For venue, infer address from the name, and find the latitude and longitude from google map.
     Do not mention anything about the news outline or blogging website.
     If the article does not mention anything about events or children related activities, return a blank.
-    Do not include any tab, whitespace or newline in the output (with the exception of the space between words)."""
+    For words with apostrophes, do not replace them with tab (/\t) or newline (/\n)."""
 
     generate_config = {    
         "system_instruction":system_instruction,    
-        "temperature": 6.0,
-        "top_p": 1.0,
+        "temperature": 0.0,
         "response_mime_type": "application/json",
         "response_schema": {
             "type": "array",
@@ -84,8 +72,8 @@ def generate(input_string):
                     "url": { "type": "string", "description": "The url of the event" },
                     "price": { "type": "number" },
                     "is_free": { "type": "boolean" },
-                    "start_date": { "type": "string", "format": "date-time" },
-                    "end_date": { "type": "string", "format": "date-time" },
+                    "start_date": { "type": "string", "format": "date-time", "description": "The start date of the event in SGT" },
+                    "end_date": { "type": "string", "format": "date-time", "description": "The end date of the event in SGT" },
                     "venue": { "type": "object", 
                         "properties": {
                             "name": { "type": "string" },
@@ -128,9 +116,9 @@ if __name__ == "__main__":
     blog_website = "sassymamasg"
 
     # Load and process RSS data
-    rss_data = load_rss(f"articles_output/{blog_website}.json")
-    articles_ls = extract_article(rss_data)
-    result = generate(json.dumps(articles_ls[1]))
+    articles_ls = load_rss(f"articles_output/{blog_website}.json")
+    
+    result = generate(json.dumps(articles_ls[2]))
     
     if result:
         # Create output filename

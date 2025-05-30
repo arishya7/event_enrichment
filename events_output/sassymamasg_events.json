@@ -1,0 +1,376 @@
+[
+  {
+    "title": "Art trial class at Abrakadoodle Singapore",
+    "description": "Abrakadoodle Singapore offers art trial classes for kids to learn about different artists and their art styles, and to be exposed to a variety of art materials and mediums. Kids can develop their confidence by sharing their ideas and masterpieces during gallery time.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://www.abrakadoodle.com.sg/",
+    "price": 58.0,
+    "is_free": false,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "Abrakadoodle Singapore",
+      "address": "multiple locations in Singapore including Orchard, River Valley and Jurong East",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "Abrakadoodle Singapore"
+  },
+  {
+    "title": "Art classes at The Art People",
+    "description": "The Art People provides specialized training in art, animation, and game design using The Artlytical Method®. They offer art classes for both mainstream and special needs students across multiple locations.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "http://www.theartpeople.com.sg",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "The Art People",
+      "address": "multiple locations in Singapore including Ang Mo Kio, Beauty World and Tampines",
+      "latitude": 1.3521,
+      "longitude": 103.8198
+    },
+    "organiser": "The Art People"
+  },
+  {
+    "title": "Themed art courses at Artary",
+    "description": "Artary offers holistic art classes for kids aged 3.5 to 12 years old, with membership providing access to studio activities and holiday options like art jams and themed courses using games, stories, and songs. Trial sessions are available.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://artary.sg/",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "Artary",
+      "address": "multiple locations in Singapore including Admiralty, Punggol, and Jurong",
+      "latitude": 1.3521,
+      "longitude": 103.8198
+    },
+    "organiser": "Artary"
+  },
+  {
+    "title": "Art jams at Artify",
+    "description": "Artify on Jalan Sultan offers regular art classes for kids aged 4 and up, as well as one-off art jams with all materials and guidance provided. They pride themselves on a small instructor-to-artist ratio for personal attention.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://www.artifystudio.com/children-art-classes",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "Artify",
+      "address": "200 Jalan Sultan, #12-07, Singapore 199018",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "Artify"
+  },
+  {
+    "title": "Art classes at Art Boot Camp",
+    "description": "Art Boot Camp provides themed programs for kids aged 18 months to 17 years. They offer Art Playdate classes for parents and toddlers, and drop-off art classes for older children, covering various art themes.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://www.artbootcamp.com.sg/",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "Art Boot Camp",
+      "address": "two locations in Singapore, including Hillview Avenue and Upper Bukit Timah",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "Art Boot Camp"
+  },
+  {
+    "title": "Art classes at Art Zone",
+    "description": "Art Zone offers interactive art classes for kids, with friendly teachers and packages available for regular sessions. Classes start from 4 years of age, with painting and drawing as the foundation, and the option to have your child's artwork framed.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://www.artzone.com.sg/Art-Zone-Singapore-Home",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "Art Zone",
+      "address": "multiple locations in Singapore including Bukit Batok, Bukit Timah and East Coast",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "Art Zone"
+  },
+  {
+    "title": "2D and 3D art classes at Chalk n Pencils",
+    "description": "Chalk n Pencils offers art classes for kids exploring both 2D and 3D art, including drawing, painting, printmaking, clay moulding, and construction work. They use a choice-based art education approach with a small teacher-to-student ratio.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "http://www.chalknpencils.com/",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "Chalk n Pencils",
+      "address": "46 Kim Yam Road #04-11, Singapore 239351 and 451 Joo Chiat Rd, #03-08, Singapore 427664",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "Chalk n Pencils"
+  },
+  {
+    "title": "Art classes at The Drawing Mint",
+    "description": "The Drawing Mint provides art classes for kids aged 3 to 15, focusing on drawing out each child's personality and style. They aim to promote independence, decision-making skills, and a sense of reflection through small group learning.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "http://www.thedrawingmint.com/",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "The Drawing Mint",
+      "address": "6 Mohamed Sultan Road, #02-01, Singapore 238956 and 406 Joo Chiat Place #03-25/26 Singapore 428084",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "The Drawing Mint"
+  },
+  {
+    "title": "Certification art classes at Our Art Studio",
+    "description": "Our Art Studio offers structured certification courses and personalized art classes for kids from 2.5 years old, catering to individual interests and learning paces. They have small class sizes and flexible timings, with class packages valid for a year.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "http://www.ourartstudio.com.sg",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "Our Art Studio",
+      "address": "#04-20, 10 Paya Lebar Road, Singapore 409057 and 1 Vista Exchange Green, #01-36, Singapore 138617",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "Our Art Studio"
+  },
+  {
+    "title": "Art classes at Little Artists Art Studio",
+    "description": "Little Artists Art Studio offers art classes for kids from 2.5 years old and up, with award-winning fine arts studios on the East Coast. They cater to various interests, including classes for children with special needs.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "http://www.little-artists.com/",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "Little Artists Art Studio",
+      "address": "15 Siglap Road, #01-07, Singapore 448912 & 55 Siglap Road, #02-18, Singapore 455871",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "Little Artists Art Studio"
+  },
+  {
+    "title": "Open-studio art classes at The Fort Studios",
+    "description": "The Fort Studios offers art classes for kids aged 6 to 14, encouraging them to think, talk, and create as artists do. They use an open-studio approach to foster responsibility and respect for each child's artistic voice.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "http://www.thefortstudios.sg",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "The Fort Studios",
+      "address": "56 Kallang Pudding Road, #08-06, HH@Kallang, Singapore 349328",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "The Fort Studios"
+  },
+  {
+    "title": "Pottery classes at 3Arts",
+    "description": "3Arts offers art classes for kids to master pottery making using electric or manual pottery wheels. Regular classes are available for varying ages, with no previous experience required.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://3arts.sg/",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "3Arts",
+      "address": "394 Joo Chiat Place, Singapore 428078",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "3Arts"
+  },
+  {
+    "title": "Art classes at HiArt",
+    "description": "HiArt offers art classes for kids as young as 2.5 years old, aiming to bring the joy of art and learning to everyone. They work closely with each student to nurture artistic skills and inspire creativity through painting, drawing, and more.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://hiart.com.sg/artforkids/",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "HiArt",
+      "address": "multiple locations in Singapore including Esplanade, United Square and Woodleigh Mall",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "HiArt"
+  },
+  {
+    "title": "Art classes at Jay Jay Jolly",
+    "description": "Jay Jay Jolly offers art classes for kids and craft kits, as well as art-themed birthday parties.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://www.jayjayjolly.com/",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "Jay Jay Jolly",
+      "address": "1008 Toa Payoh North, #02-01, Singapore 318996",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "Jay Jay Jolly"
+  },
+  {
+    "title": "Comic and cartoon art classes at Global Art",
+    "description": "Global Art offers art classes for kids aged three and up, encompassing visual art, handicrafts, cartoons, comics, and acrylic painting. These classes aim to encourage imagination and expression while enhancing mental development.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://www.globalart.com.sg/",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "Global Art",
+      "address": "multiple locations in Singapore including Anchorpoint, Bishan and Bukit Panjang",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "Global Art"
+  },
+  {
+    "title": "Art jamming at Ki.Li.O Art",
+    "description": "Ki.Li.O Art offers art jamming sessions and kid-friendly art workshops for children aged 2 to 12, focusing on the elements of art and design while refining motor skills and creative expression.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://kilioart.com/",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "Ki.Li.O Art",
+      "address": "85 East Coast Road, #02-01, Singapore 428787",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "Ki.Li.O Art"
+  },
+  {
+    "title": "Art camps at Little Arts Academy",
+    "description": "Little Arts Academy offers art classes and camps for kids of all ages and abilities from the age of 6, with a range of options available. They also provide regular personalized programs and short courses.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://thelittleartsacademy.sg/",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "Little Arts Academy",
+      "address": "Yishun Avenue 2 and 1 Northpoint Drive",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "Little Arts Academy"
+  },
+  {
+    "title": "Art classes at My Art Pencil",
+    "description": "My Art Pencil offers art jams, art supplies, art classes, and birthday party packages for kids aged 3 years old to teens, with a focus on cultivating artistic talent.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://www.myartpencil.com/index.htm",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "My Art Pencil",
+      "address": "50 Serangoon North Avenue 4 #09-16 Singapore 555856",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "My Art Pencil"
+  },
+  {
+    "title": "Art packages at Rafayet Studio",
+    "description": "Rafayet Studio offers a variety of art packages designed for different age groups and skill levels, aiming to help kids reach their full artistic potential. These classes help children acquire new artistic abilities, develop confidence, improve fine motor skills, and enhance problem-solving skills.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://www.instagram.com/rafayetstudio/",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "Rafayet Studio",
+      "address": "Bukit Timah Shopping Centre, #02-40, Singapore 588179",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "Rafayet Studio"
+  },
+  {
+    "title": "Calligraphy and watercolour workshops at Soul Deelight",
+    "description": "Soul Deelight offers calligraphy and watercolour workshops for kids and adults, with online classes also available.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://www.souldeelight.com/",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "Soul Deelight",
+      "address": "Bukit Batok, Singapore 650288 (strictly by appointment only)",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "Soul Deelight"
+  },
+  {
+    "title": "Art classes at TREE ART",
+    "description": "TREE ART offers art classes for children aged 3 and up, introducing them to creative expression in a nurturing, hands-on environment. They offer a wide range of art forms, including graphic design, painting, sculpture, and ceramics.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://treeart.co/",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "TREE ART",
+      "address": "multiple locations in Singapore including Orchard, East Coast, and Tampines",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "TREE ART"
+  },
+  {
+    "title": "Personalised art classes at We Art",
+    "description": "We Art offers personalised teaching methods and courses inspired by the Korean art curriculum. They have classes for kids aged 5 to 9 (Little Explorers) and older kids aged 10 to 19, covering drawing, watercolours, acrylic painting, and more.",
+    "guid": "https://www.sassymamasg.com/?p=126566",
+    "url": "https://www.weart.sg/",
+    "price": 0.0,
+    "is_free": true,
+    "start_date": "2025-05-28T22:30:53+00:00",
+    "end_date": "2025-05-28T22:30:53+00:00",
+    "venue": {
+      "name": "We Art",
+      "address": "176 Orchard Road, CentrePoint,#04-02/03/03A, Singapore 238843",
+      "latitude": 1.3,
+      "longitude": 103.8
+    },
+    "organiser": "We Art"
+  }
+]
