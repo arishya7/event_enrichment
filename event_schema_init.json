@@ -1,0 +1,53 @@
+{
+    "type": "array",
+    "items": {
+      "type": "object",
+      "required": [
+        "title",
+        "description",
+        "guid",
+        "url",
+        "price",
+        "is_free",
+        "organiser",
+        "min_age",
+        "max_age",
+        "start_datetime",
+        "end_datetime",
+        "venue",
+        "categories"
+      ],
+      "properties": {
+        "title": { 
+            "type": "string",
+            "minLength": 40,
+            "maxLength": 60
+        },
+        "description": { 
+            "type": "string", 
+            "minLength": 450,
+            "maxLength": 700
+        },
+        "guid": { "type": "string" },
+        "url": { "type": "string" },
+        "price": { "type": "number" },
+        "is_free": { "type": "boolean" },
+        "organiser": { "type": "string" },
+        "min_age": { "type": "number" },
+        "max_age": { "type": "number" },
+        "start_datetime": {"type": "string", "description": "The start date and time of the event in ISO 8601 format in SGT timezone", "format": "date-time"},
+        "end_datetime": {"type": "string", "description": "The end date and time of the event in ISO 8601 format, in SGT timezone", "format": "date-time"},
+        "venue": {"type": "string"},
+        "categories": {
+          "type": "array",
+          "description": "Event categories - must include at least one category",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["Indoor", "Outdoor", "Performance", "Exhibition", "Sport", "Festival", "Market", "Community", "Adventure", "Workshop", "Occasion"]
+          }
+        }
+      }
+    }
+  }
+  

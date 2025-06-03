@@ -172,3 +172,15 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Ignore all files in the events_output directory
+events_output/*
+
+# Ignore all files in the articles_output directory
+articles_output/*
+
+# Ignore all files in RSS output directory
+rss_output/*
+
+# Ignore all files in metadata directory
+metadata_database/*

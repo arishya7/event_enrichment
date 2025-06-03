@@ -198,7 +198,6 @@ def parse_rss_file(file_path: str, blog_name: str, meta_db: MetaDatabase) -> Lis
             title = clean_html(item.findtext('title', ''))
             content = clean_html(item.findtext('{http://purl.org/rss/1.0/modules/content/}encoded', ''))
             author = clean_html(item.findtext('{http://purl.org/dc/elements/1.1/}creator', ''))
-            pub_date = item.findtext('pubDate', '')
             categories = [clean_html(cat.text) for cat in item.findall('category')]
             all_text = ET.tostring(item, encoding='unicode')
             urls = extract_urls(all_text)
@@ -207,7 +206,6 @@ def parse_rss_file(file_path: str, blog_name: str, meta_db: MetaDatabase) -> Lis
             article = {
                 'title': title,
                 'author': author,
-                'publication_date': pub_date,
                 'categories': categories,
                 'content': content,
                 'urls': urls,
@@ -253,9 +251,9 @@ def main():
     
     # Process XML files from test_RSS directory
     file_mapping = {
-        'RSS_test/theasianparent.xml': ('theasianparent.json', 'theasianparent'),
-        'RSS_test/sassymamasg.xml': ('sassymamasg.json', 'sassymamasg'),
-        'RSS_test/sassymamasg2.xml': ('sassymamasg.json', 'sassymamasg')
+        'RSS_test/theasianparent.xml': ('theasianparent_articles.json', 'theasianparent'),
+        'RSS_test/sassymamasg.xml': ('sassymamasg_articles.json', 'sassymamasg'),
+        'RSS_test/sassymamasg2.xml': ('sassymamasg_articles.json', 'sassymamasg')
     }
     
     for input_file, (output_file, blog_name) in file_mapping.items():
@@ -268,8 +266,10 @@ def main():
         
         articles = parse_rss_file(input_file, blog_name, meta_db)
         if articles:  # Only save if we have new articles
-            save_to_json(articles, output_file)
-            print(f"Found {len(articles)} new articles")
+            # Take the top 20 articles based on RSS feed order
+            top_20_articles = articles[:20]
+            save_to_json(top_20_articles, output_file)
+            print(f"Saved top {len(top_20_articles)} articles (out of {len(articles)} new articles found based on RSS order)")
         else:
             print("No new articles found")
     

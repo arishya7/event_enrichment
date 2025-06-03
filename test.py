@@ -1,9 +1,10 @@
 from pathlib import Path
-
+import json
 blog = "sassymamasg"
 
-rss_path = Path("articles_output") / blog+".json"
-event_path = Path("events_output") / f"{blog}_events.json"
+rss_path = Path("articles_output") / f"{blog}_articles.json"
 
-print(f"RSS file exists: {rss_path.exists()}")
-print(f"Event file exists: {event_path.exists()}")
+with open(rss_path, 'r', encoding='utf-8') as f:
+    rss_data = json.load(f)
+
+print(len(rss_data))
