@@ -17,7 +17,6 @@ class GuidDatabase:
         self.guids = self._load_sorted_guids()
     
     def _load_sorted_guids(self) -> List[int]:
-        """Load GUIDs from database as integers."""
         if self.database_path.exists():
             with open(self.database_path, 'r', encoding='utf-8') as f:
                 # Convert stored strings to integers
@@ -25,26 +24,19 @@ class GuidDatabase:
         return []
     
     def save(self):
-        """Save GUIDs to database as strings for JSON compatibility."""
         with open(self.database_path, 'w', encoding='utf-8') as f:
             # Convert integers to strings for JSON storage
             json.dump([str(guid) for guid in self.guids], f, indent=2)
     
     def contains(self, guid: int) -> bool:
-        """Check if GUID exists using binary search."""
         i = bisect_left(self.guids, guid)
         return i != len(self.guids) and self.guids[i] == guid
     
-    def add(self, guid: int):
-        """Add new GUID maintaining sorted order."""
-        if not self.contains(guid):
-            i = bisect_left(self.guids, guid)
-            self.guids.insert(i, guid)
-    
     def add_many(self, new_guids: List[int]):
-        """Add multiple GUIDs maintaining sorted order."""
         for guid in new_guids:
-            self.add(guid)
+            if not self.contains(guid):
+                i = bisect_left(self.guids, guid)
+                self.guids.insert(i, guid)
 
 class MetaDatabase:
     def __init__(self):
@@ -62,13 +54,11 @@ class MetaDatabase:
         self.guid_databases = {}
         
     def get_guid_database(self, blog_name: str) -> GuidDatabase:
-        """Get or create a GuidDatabase instance for a blog."""
         if blog_name not in self.guid_databases:
             self.guid_databases[blog_name] = GuidDatabase(blog_name, self.guid_dir)
         return self.guid_databases[blog_name]
             
     def load_history(self) -> List[Dict]:
-        """Load extraction history."""
         if self.history_file.exists():
             with open(self.history_file, 'r', encoding='utf-8') as f:
                 return json.load(f)
@@ -77,7 +67,6 @@ class MetaDatabase:
     def add_blog_to_current_run(self, blog_name: str, total_articles: int, 
                                new_articles: int, repeated_articles: int, 
                                new_guids: List[str]):
-        """Add a blog's extraction data to the current run."""
         blog_data = {
             'blog_name': blog_name,
             'total_articles_processed': total_articles,
@@ -88,7 +77,6 @@ class MetaDatabase:
         self.current_run['blogs_processed'].append(blog_data)
     
     def save_current_run(self):
-        """Save the current run to extraction history."""
         # Save all GUID databases - they maintain their own sorted order
         for guid_db in self.guid_databases.values():
             guid_db.save()
@@ -107,7 +95,6 @@ class MetaDatabase:
         }
 
 def extract_rss_feed(blog_url: str, filename: str):
-    """Extract RSS feed from blog URL."""
     # Define headers to mimic a real browser (will only use if needed)
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -130,11 +117,9 @@ def extract_rss_feed(blog_url: str, filename: str):
     last_error = None
     for feed_url in feed_formats:
         try:
-            print(f"Trying RSS feed URL: {feed_url}")
             
             # First try without headers
             try:
-                print("Attempting request without headers...")
                 response = requests.get(feed_url, timeout=10)
                 response.raise_for_status()
             except requests.exceptions.HTTPError as e:
@@ -149,10 +134,9 @@ def extract_rss_feed(blog_url: str, filename: str):
             if 'xml' in response.headers.get('Content-Type', '').lower() or '<?xml' in response.text[:100]:
                 with open(output_path, 'w', encoding='utf-8') as f:
                     f.write(response.text)
-                print(f"Successfully saved RSS feed to {output_path}")
                 return output_path
             else:
-                print(f"URL {feed_url} returned non-XML content, trying next format...")
+                print(f"URL {feed_url} returned non-XML content, try another format")
                 
         except requests.RequestException as e:
             print(f"Failed to fetch {feed_url}: {str(e)}")
@@ -171,14 +155,6 @@ def extract_rss_feed(blog_url: str, filename: str):
     return False
 
 def extract_post_id(guid: str) -> int:
-    """Extract post ID from GUID URL and convert to integer.
-    
-    Args:
-        guid (str): GUID URL like 'https://www.sassymamasg.com/?p=181842'
-        
-    Returns:
-        int: Post ID number or 0 if no valid post ID found
-    """
     try:
         parsed = urlparse(guid)
         query_params = parse_qs(parsed.query)
@@ -189,23 +165,18 @@ def extract_post_id(guid: str) -> int:
     return 0  # Return 0 for invalid GUIDs
 
 def clean_html(html_text: str) -> str:
-    """Remove HTML tags and decode HTML entities."""
     # Remove CDATA sections
     text = re.sub(r'<!\[CDATA\[(.*?)\]\]>', r'\1', html_text)
-    
     # Remove HTML tags
     text = re.sub(r'<[^>]+>', ' ', text)
-    
     # Decode HTML entities
     text = unescape(text)
-    
     # Remove extra whitespace
     text = re.sub(r'\s+', ' ', text)
     
     return text.strip()
 
 def extract_urls(text: str) -> List[str]:
-    """Extract URLs from href attributes only, excluding internal anchors and specific domains."""
     # Pattern to match href attributes
     href_pattern = r'href=["\'](.*?)["\']'
     
@@ -229,7 +200,6 @@ def extract_urls(text: str) -> List[str]:
     return list(set(clean_urls))  # Remove duplicates
 
 def parse_rss_file(file_path: str, blog_name: str, meta_db: MetaDatabase) -> List[Dict]:
-    """Parse RSS XML file and extract required information."""
     try:
         # Get GUID database for this blog
         guid_db = meta_db.get_guid_database(blog_name)
@@ -299,7 +269,6 @@ def parse_rss_file(file_path: str, blog_name: str, meta_db: MetaDatabase) -> Lis
         return []
 
 def save_to_json(articles: List[Dict], output_file: str):
-    """Save articles to a JSON file."""
     # Create output directory if it doesn't exist
     os.makedirs('articles_output', exist_ok=True)
     
@@ -312,35 +281,6 @@ def save_to_json(articles: List[Dict], output_file: str):
     return output_path
 
 def main():
-    # Initialize meta database
-    meta_db = MetaDatabase()
-    
-    # Process XML files from test_RSS directory
-    file_mapping = {
-        'RSS_test/theasianparent.xml': ('theasianparent_articles.json', 'theasianparent'),
-        'RSS_test/sassymamasg.xml': ('sassymamasg_articles.json', 'sassymamasg'),
-        'RSS_test/sassymamasg2.xml': ('sassymamasg_articles.json', 'sassymamasg')
-    }
-    
-    for input_file, (output_file, blog_name) in file_mapping.items():
-        if not os.path.exists(input_file):
-            print(f"File {input_file} not found")
-            continue
-            
-        print(f"\nProcessing {input_file}:")
-        print("=" * 50)
-        
-        articles = parse_rss_file(input_file, blog_name, meta_db)
-        if articles:  # Only save if we have new articles
-            # Take the top 20 articles based on RSS feed order
-            top_20_articles = articles[:20]
-            save_to_json(top_20_articles, output_file)
-            print(f"Saved top {len(top_20_articles)} articles (out of {len(articles)} new articles found based on RSS order)")
-        else:
-            print("No new articles found")
-    
-    # Save the extraction run after processing all blogs
-    meta_db.save_current_run()
-
+    return
 if __name__ == "__main__":
     main() 
