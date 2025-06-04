@@ -8,8 +8,8 @@ from pathlib import Path
 import re
 
 # Import AddressExtractor and GoogleCustomSearchAPI
-from address_extractor import AddressExtractor
-from image_extractor import GoogleCustomSearchAPI
+from address_extractor import *
+from image_extractor import *
 
 # Load environment variables
 load_dotenv()
@@ -104,6 +104,7 @@ def generate(prompt:str) -> str:
         "system_instruction": system_instruction,    
         "temperature": 0.0,
         "response_mime_type": "application/json",
+        "max_tokens": 8192,
         "response_schema": schema
     }
 
@@ -194,9 +195,6 @@ if __name__ == "__main__":
                         event_venue = event.get('venue')
                     
                         # Add address to the event
-                        event['full_address'] = None
-                        event['latitude'] = None
-                        event['longitude'] = None
                         search_query = f"{event_title} {event_venue}" if event_title else event_venue
                         address_details = address_extractor.extract_address_details(search_query)
                         event['full_address'] = address_details.get('address')
@@ -216,7 +214,7 @@ if __name__ == "__main__":
                                 image_download_dir=images_dir,
                                 image_results=image_results,
                                 event_title_for_filename=event_title,
-                                num_to_download=10  # Same as in main()
+                                num_to_download=5  # Same as in main()
                             )
                             
                             if downloaded_image_details:

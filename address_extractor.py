@@ -39,11 +39,11 @@ class AddressExtractor:
             Dict containing address, latitude, and longitude
         """
         try:
-            url = f"https://places.googleapis.com/v1/places:searchText"
+            url = "https://places.googleapis.com/v1/places:searchText"
             
             # Prepare body from user's template, adding the specific query
             api_body = self.body_template.copy()
-            api_body["textQuery"] = f"{query}, Singapore" # Assuming Singapore context
+            api_body["textQuery"] = f"{query}, Singapore"
             
             api_headers = self.headers.copy()
             api_headers['X-Goog-Api-Key'] = self.api_key
@@ -56,7 +56,7 @@ class AddressExtractor:
             result = response.json()
             
             if not result.get('places'):
-                logger.warning(f"No results found for venue: {venue}")
+                logger.warning(f"No results found for query: {query}")
                 return {"address": None, "latitude": None, "longitude": None}
             
             place = result['places'][0]
@@ -66,9 +66,9 @@ class AddressExtractor:
                 "longitude": place.get('location', {}).get('longitude')
             }
         except requests.exceptions.RequestException as e:
-            logger.error(f"HTTP Request error for venue '{venue}': {str(e)}")
+            logger.error(f"HTTP Request error for venue '{query}': {str(e)}")
         except Exception as e:
-            logger.error(f"Error searching venue '{venue}': {str(e)}")
+            logger.error(f"Error searching venue '{query}': {str(e)}")
         
         return {"address": None, "latitude": None, "longitude": None}
 

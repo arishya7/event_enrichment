@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 from bisect import bisect_left
+import requests
 
 class GuidDatabase:
     def __init__(self, blog_name: str, database_dir: Path):
@@ -104,6 +105,70 @@ class MetaDatabase:
             'timestamp': datetime.now().isoformat(),
             'blogs_processed': []
         }
+
+def extract_rss_feed(blog_url: str, filename: str):
+    """Extract RSS feed from blog URL."""
+    # Define headers to mimic a real browser (will only use if needed)
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'DNT': '1'  # Do Not Track
+    }
+
+    # List of possible feed URL formats to try
+    feed_formats = [
+        f"https://{blog_url}",  # Original format
+        f"https://{blog_url.replace('/feed/', '')}/feed",  # Without trailing slash
+        f"https://{blog_url.replace('/feed', '')}/feed",   # Different feed path
+        f"https://{blog_url.split('/')[0]}/feed"          # Root feed
+    ]
+    output_path = os.path.join('RSS_temp', filename)
+    last_error = None
+    for feed_url in feed_formats:
+        try:
+            print(f"Trying RSS feed URL: {feed_url}")
+            
+            # First try without headers
+            try:
+                print("Attempting request without headers...")
+                response = requests.get(feed_url, timeout=10)
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                if response.status_code == 403:
+                    print("Got 403 error, retrying with browser headers...")
+                    response = requests.get(feed_url, headers=headers, timeout=10)
+                    response.raise_for_status()
+                else:
+                    raise e
+
+            # Check if response is actually RSS/XML content
+            if 'xml' in response.headers.get('Content-Type', '').lower() or '<?xml' in response.text[:100]:
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    f.write(response.text)
+                print(f"Successfully saved RSS feed to {output_path}")
+                return output_path
+            else:
+                print(f"URL {feed_url} returned non-XML content, trying next format...")
+                
+        except requests.RequestException as e:
+            print(f"Failed to fetch {feed_url}: {str(e)}")
+            last_error = e
+            continue
+        except Exception as e:
+            print(f"Unexpected error with {feed_url}: {str(e)}")
+            last_error = e
+            continue
+
+    # If we get here, none of the formats worked
+    if last_error:
+        print(f"Error: Could not fetch RSS feed from any URL format for {blog_url}: {str(last_error)}")
+    else:
+        print(f"Error: Could not find valid RSS feed for {blog_url}")
+    return False
 
 def extract_post_id(guid: str) -> int:
     """Extract post ID from GUID URL and convert to integer.
@@ -244,6 +309,7 @@ def save_to_json(articles: List[Dict], output_file: str):
         json.dump(articles, f, indent=2, ensure_ascii=False)
     
     print(f"Saved {len(articles)} articles to {output_path}")
+    return output_path
 
 def main():
     # Initialize meta database
