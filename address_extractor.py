@@ -29,7 +29,7 @@ def get_address_and_coord(query: str, google_api_key: str)->dict:
     }
 
 def extract_venue_details(event_dict: dict, google_api_key: str) -> dict:
-    address_details = get_address_and_coord(event_dict['venue'], google_api_key)
+    address_details = get_address_and_coord(event_dict['venue_name'], google_api_key)
     event_dict['full_address'] = address_details['address']
     event_dict['latitude'] = address_details['latitude']
     event_dict['longitude'] = address_details['longitude']

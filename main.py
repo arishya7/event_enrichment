@@ -42,13 +42,15 @@ def main():
     for blog_name, blog_details in blog_dict.items():
         articles = parse_rss_file(blog_details['rss_file_path'], blog_name, meta_db)
         if articles:
-            top_20_articles = articles[:20]
+            top_few_articles = articles[:5]
             articles_filename = f"{blog_name}_articles.json"
-            article_file_path = save_to_json(top_20_articles, articles_filename)
+            article_file_path = save_to_json(top_few_articles, articles_filename)
             blog_dict[blog_name]['article_file_path'] = article_file_path
         else:
             print("No new articles found")
     meta_db.save_current_run()
+    # Get the timestamp AFTER saving the current run
+    scraped_timestamp = meta_db.current_run["timestamp"]
 
     #############################################
     # Extract events from articles as json
@@ -80,13 +82,15 @@ def main():
             if events_ls:
                 try:
                     for event in events_ls:
+                        event['scraped_on'] = scraped_timestamp
+
                         # Obtain venue details
                         event = extract_venue_details(event, google_api_key)
-                        
+
                         ########################################################################################################
                         ########################################################################################################
                         ########################################################################################################
-                        # Add images to the event
+                        ##3##################################### Add images to the event #######################################
                         image_results_ls = search_images(
                             query=event['title'],
                             api_key=google_api_key,

@@ -55,6 +55,18 @@ def download_image(image_url: str, filepath: Path) -> Dict[str, str]:
         response = requests.get(image_url, stream=True, timeout=20)
         response.raise_for_status()
 
+        # Extract source credit from URL
+        try:
+            parsed_url = urlparse(image_url)
+            # Get domain without www. and .com/.org/etc
+            domain = parsed_url.netloc.lower()
+            domain = re.sub(r'^www\.', '', domain)  # Remove www.
+            domain = re.sub(r'\.(com|org|net|edu|gov|sg|io|co|uk).*$', '', domain)  # Remove TLD
+            # Convert dashes/underscores to spaces and capitalize words
+            source_credit = ' '.join(word.capitalize() for word in re.split(r'[-_]', domain))
+        except:
+            source_credit = "Unknown Source"
+
         # Determine file extension from URL or content-type
         try:
             parsed_url = urlparse(image_url)
@@ -89,8 +101,9 @@ def download_image(image_url: str, filepath: Path) -> Dict[str, str]:
         local_path_str = str(final_filepath.relative_to(Path.cwd()) if final_filepath.is_absolute() else final_filepath)
         return {
             "local_path": local_path_str, 
-            "original_url": image_url, 
-            "filename": final_filepath.name
+            "original_url": image_url,
+            "filename": final_filepath.name,
+            "source_credit": source_credit
         }
 
     except requests.exceptions.Timeout:

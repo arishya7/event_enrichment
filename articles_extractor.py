@@ -171,8 +171,8 @@ def clean_html(html_text: str) -> str:
     text = re.sub(r'<[^>]+>', ' ', text)
     # Decode HTML entities
     text = unescape(text)
-    # Remove extra whitespace
-    text = re.sub(r'\s+', ' ', text)
+    # Remove extra whitespace and tabs
+    text = re.sub(r'[\s\t]+', ' ', text)
     
     return text.strip()
 
@@ -281,6 +281,111 @@ def save_to_json(articles: List[Dict], output_file: str):
     return output_path
 
 def main():
-    return
+    """Test articles extraction with user control"""
+    print("=== Articles Extractor Test ===\n")
+    
+    # Read blog URLs and create blog dictionary
+    try:
+        with open("blog_websites.txt", "r") as f:
+            blog_dict = {}
+            for line in f:
+                if line.strip():
+                    blog_url, blog_name = line.strip().split(",")
+                    blog_dict[blog_name] = {"blog_url": blog_url}
+    except FileNotFoundError:
+        print("❌ Error: blog_websites.txt not found")
+        return
+    except Exception as e:
+        print(f"❌ Error reading blog_websites.txt: {e}")
+        return
+        
+    # Show available blogs
+    print("📚 Available blogs:")
+    for i, (blog_name, _) in enumerate(blog_dict.items(), 1):
+        print(f"   {i}. {blog_name}")
+    
+    # User selection for blog
+    while True:
+        try:
+            choice = input(f"\nSelect blog (1-{len(blog_dict)}) or 'q' to quit: ").strip()
+            if choice.lower() == 'q':
+                return
+                
+            blog_index = int(choice) - 1
+            if 0 <= blog_index < len(blog_dict):
+                selected_blog_name = list(blog_dict.keys())[blog_index]
+                selected_blog = blog_dict[selected_blog_name]
+                break
+            else:
+                print(f"❌ Please enter a number between 1 and {len(blog_dict)}")
+        except ValueError:
+            print("❌ Please enter a valid number or 'q'")
+    
+    # Create RSS_temp directory
+    os.makedirs('RSS_temp', exist_ok=True)
+    
+    # Extract RSS feed
+    print(f"\n📥 Extracting RSS feed for {selected_blog_name}...")
+    filename = f"{selected_blog_name}.xml"
+    rss_path = extract_rss_feed(selected_blog['blog_url'], filename)
+    
+    if not rss_path:
+        print("❌ Failed to extract RSS feed")
+        return
+    print("✅ RSS feed extracted successfully")
+    
+    # Initialize MetaDatabase
+    meta_db = MetaDatabase()
+    
+    # Get user input for number of articles
+    while True:
+        try:
+            print("\nHow many articles do you want to extract?")
+            print("1. All new articles")
+            print("2. Specify number")
+            print("3. Quit")
+            
+            option = input("Select option (1-3): ").strip()
+            
+            if option == '3':
+                return
+            elif option == '1':
+                num_articles = None  # Will extract all new articles
+                break
+            elif option == '2':
+                num = input("Enter number of articles to extract: ").strip()
+                num_articles = int(num)
+                if num_articles <= 0:
+                    print("❌ Please enter a positive number")
+                    continue
+                break
+            else:
+                print("❌ Please enter 1, 2, or 3")
+        except ValueError:
+            print("❌ Please enter a valid number")
+    
+    # Parse RSS and extract articles
+    print(f"\n📝 Extracting articles from RSS feed...")
+    articles = parse_rss_file(rss_path, selected_blog_name, meta_db)
+    
+    if not articles:
+        print("❌ No new articles found")
+        return
+    
+    # Limit articles if specified
+    if num_articles is not None:
+        articles = articles[:num_articles]
+    
+    # Save articles
+    articles_filename = f"{selected_blog_name}_articles.json"
+    output_path = save_to_json(articles, articles_filename)
+    
+    # Save metadata
+    meta_db.save_current_run()
+    
+    print("\n✨ Summary:")
+    print(f"📊 Total articles extracted: {len(articles)}")
+    print(f"💾 Articles saved to: {output_path}")
+    
 if __name__ == "__main__":
     main() 

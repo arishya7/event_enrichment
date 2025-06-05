@@ -20,33 +20,26 @@ def clean_text(text: str) -> str:
     if not isinstance(text, str):
         return text
     
-    # Remove tabs, newlines, and other common problematic whitespace
-    text = text.replace('\\t', '').replace('\\n', '').replace('\t', '').replace('\n', '')
+    # First replace escaped characters
+    text = text.replace('\\t', ' ').replace('\\n', ' ')
+    
+    # Then replace actual tab and newline characters
+    text = text.replace('\t', ' ').replace('\n', ' ')
     
     # Remove a wider range of control characters except for common whitespace
-    # This regex matches most ASCII control characters but keeps space, tab, newline, carriage return
-    text = re.sub(r'[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F\\x7F]', '', text)
+    text = re.sub(r'[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]', '', text)
     
-    # Replace multiple spaces with a single space
-    text = re.sub(r'\\s+', ' ', text).strip()
+    # Replace multiple spaces with a single space and strip
+    text = re.sub(r'\s+', ' ', text).strip()
     
     return text
 
-def extract_events(article_dict: dict, google_api_key: str, system_instruction:str) -> dict:
-    '''
-    Call Gemini API to generate events from a blog article.
-
-    Args:
-        article_dict (dict): In string, the data of a blog article. It is formatted as a json object.
-        google_api_key (str): The API key for the Gemini API.
-
-    Returns:
-        str: The generated events in json format.
-    '''
+def extract_events(article_dict: dict, google_api_key: str, system_instruction:str, model:str) -> dict:
     client = genai.Client(api_key=google_api_key)
     
     generate_config = {    
-        "system_instruction": system_instruction,    
+        "system_instruction": system_instruction,
+        "tools": [types.Tool(url_context=types.UrlContext)],
         "temperature": 0.0,
         "response_mime_type": "application/json",
         "response_schema": json.load(open("event_schema_init.json"))
@@ -56,6 +49,7 @@ def extract_events(article_dict: dict, google_api_key: str, system_instruction:s
     # Possibly build safety settings here
     #####################################
 
+    response = None
     try:
         article_dict['content'] = clean_text(article_dict['content'])
         prompt = json.dumps(article_dict)
@@ -64,19 +58,34 @@ def extract_events(article_dict: dict, google_api_key: str, system_instruction:s
             contents=prompt,
             config=generate_config
         )
-        
+        print(response)
         if response.text:
-            return json.loads(response.text)
+            try:
+                return json.loads(response.text)
+            except json.JSONDecodeError as e:
+                print(f"Error parsing response JSON: {e}")
+                return None
         return None
 
     except Exception as e:
+        if response:
+            print(response)
+            # Try to convert response to JSON string first
+            try:
+                json_str = json.dumps(response.json())
+                # Save response as JSON file
+                output_file = "events_output/extraction_error.json"
+                with open(output_file, "w", encoding="utf-8") as f:
+                    f.write(json_str)
+                print(f"Error response saved to {output_file}")
+            except Exception as json_err:
+                print(f"Could not save error response: {json_err}")
         print(f"Error generating content: {e}")
         return None
 
 if __name__ == "__main__":
-    system_instruction = """
-
-    """
+    system_instruction = open("system_instruction.txt", "r").read()
+    system_instruction = system_instruction + "\n" + json.dumps(json.load(open("event_schema_init.json")))
     model = "gemini-2.0-flash"
     def main():
         """Test events extraction with user control"""
@@ -197,24 +206,22 @@ if __name__ == "__main__":
             print(f"ARTICLE {i}/{len(selected_articles)}")
             print(f"{'='*80}")
             print(f"Title: {article.get('title', 'No title')}")
-            print(f"URL: {article.get('url', 'No URL')}")
-            print(f"Date: {article.get('published_date', 'No date')}")
-            print(f"Content preview: {article.get('content', '')[:200]}...")
+            print(f"Content preview: {article.get('content', '')[:500]}...")
             print(f"\n🔍 Extracting events...")
             
             try:
-                events_result = extract_events(article, google_api_key,system_instruction)
+                events_result = extract_events(article, google_api_key,system_instruction, model="gemini-2.5-pro-preview-05-06")
                 
+                print(f"{'='*80}")
                 # Handle if events_result is a list (API might return list directly)
                 if isinstance(events_result, list):
                     events = events_result # Assume the list itself is the list of events
                     print(f"✅ Found {len(events)} event(s) (returned as a direct list):")
-                elif events_result and isinstance(events_result, dict) and events_result.get('events'):
-                    events = events_result['events']
-                    print(f"✅ Found {len(events)} event(s) (from dict key 'events'):")
                 else:
                     events = [] # No events found or unexpected format
+                    print(events_result)
                     print("⚠️  No events found in this article or unexpected API response format")
+                print(f"{'='*80}")
 
                 if events: # Proceed only if events list is not empty
                     for j, event in enumerate(events, 1):
@@ -226,7 +233,7 @@ if __name__ == "__main__":
                         print(f"\n   📅 EVENT {j}:")
                         print(f"   Title: {event.get('title', 'No title')}")
                         print(f"   Description: {event.get('description', 'No description')[:200]}...")
-                        print(f"   Venue: {event.get('venue', 'No venue')}")
+                        print(f"   Venue: {event.get('venue_name', 'No venue')}")
                         print(f"   Date: {event.get('event_date', 'No date')}")
                         print(f"   Time: {event.get('event_time', 'No time')}")
                         print(f"   URL: {event.get('url', 'No URL')}")

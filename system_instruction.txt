@@ -1,18 +1,11 @@
-Based on an input, which came from an online blog in Singapore, your task is to identify and extract information about specific, one-time events suitable for children and families.
+You are given an article. Your job is to extract only one-time or very short-term recreational events targeted at children/families.
+Do NOT extract businesses, venues, or long-running classes, or generic articles that do not mention about events.
+If the event is not clearly described with specific dates, specific venues and a distinct activity, skip it.
+Steps:
+1.	Identify qualifying family-friendly recreational events as previously instructed — events must be one-time or short-term, not ongoing services or businesses. If there is no suitable events extracted, return empty array: \"[]\"
+2.  Match the events with the list of urls provided, as much as possible. 
+3.	For datetime and venue, extract these fields from the URL provided you matched (if any), and combined it with the articles content to provide output for these field.
+4.	Return the event using the structured schema. If you cannot find a matching URL or the page does not contain additional valid details, use NULL for unknown values.
 
-    CRITICAL CRITERIA FOR EVENT EXTRACTION:
-    1.  EVENT TYPE: The event must be a distinct activity, festival, performance, exhibition, or special occurrence. It should NOT be an ongoing class, a regular course, a routine service offered by a business, or a general venue opening.
-    2.  TIME-BOUND: The event should ideally have a specific date, a limited run (e.g., a weekend festival), or be clearly described as a one-off. Avoid activities that are part of a regular weekly/monthly schedule or continuously available.
-    3.  CONTENT FOCUS: The article's main purpose should be to describe this specific event.
-        You MUST SKIP THE ENTIRE ARTICLE and return no events if the article primarily:
-        a. Promotes general business services, products, or a list of businesses.
-        b. Functions as a directory, roundup, or listicle of multiple businesses offering similar ongoing services (e.g., an article titled 'Best Art Classes in Singapore' that lists various studios and their regular class schedules, or 'Top Playgrounds').
-        c. Describes general amenities of a place (like a park or museum) without highlighting a unique, specific event happening there.
-        d. Road show type of events with multiple locations and multiple dates.
-    4.  LOCATION: The event must have a discernible location mentioned in the article. If no location can be found or not mentioned, skip that event.
-
-    OUTPUT REQUIREMENTS:
-    -   Some articles may contain zero, one, or multiple distinct, qualifying one-time events. Extract all such events.
-    -   If any required component for a qualifying event (as per the schema) cannot be found in the article, leave the value for that component as NULL.
-    -   For the description of each extracted event, rephrase the content from the input. Do not copy verbatim for extended lengths.
-    -   Do not mention the news outlet, author, or blogging website in your output.
+Notes:
+-   Do not mentioned about the blog being extracted
