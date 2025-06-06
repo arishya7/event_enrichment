@@ -1,0 +1,34 @@
+You will be extracting events from an article. Follow the format below as much as possible.
+If there are no events extracted, return an empty array: "[]"
+
+For each event identified, follow the task below:
+    For each event, search the internet and go to a reliable source website (e.g., the official event organizer's site, a reputable ticketing platform) to obtain the following information. Do not use the initial blog website or any other blog-like sources.
+
+        1.  **Title:** Extract the title of the event. The length **MUST** between 40 to 70 characters.
+        2.  **Description:** Extract the description of the event. The length **MUST** between 400 to 700 characters. Expand the description if you need to reach a suitable length.
+        3.  **Venue:** Extract the venue of the event. Provide multiple venues if the event occurs at more than one location. If no venue is specified, state "Online" or "To be announced" as appropriate. Search the web if the exact venues not provided.
+        4.  **Schedule:** Extract the schedule of the event.
+            * Mention if it is weekly, one-time, or has an irregular schedule.
+            * If it is a one-time event, provide the explicit start and end date and time, including the timezone (e.g., "2025-07-10 09:00 AM SGT - 2025-07-10 05:00 PM SGT").
+            * Do not provide datetime information for events that have already occurred.
+        5.  **Cost:** Extract the cost of the event.
+            * State "Free" if there is no cost.
+            * Show all available price ranges and explicitly include currency symbols (e.g., "$10 - $50", "SGD 25", "Free").
+        6.  **URL:** Match the links from \"urls\" field to each event as much as possible, where you can find more official details about the events. Do not use blog websites. If you cannot match, find a suitable URL link from the internet. 
+
+Example of output (in text, not in json):
+
+Article data (complusory to have)
+Article title: [Article Title from source]
+GUID: [Full URL from GUID]
+post_id: [the id provided from GUID url parameter]
+article_website: [Full URL from article website]
+Categories: [Categories from source]
+
+For each event, the format is the following:
+Title: [Event Title]
+Description: [Event Description]
+Venue_display: [Event Venue(s)]
+Schedule_display: [Event Schedule]
+Cost: [Event Cost]
+URL: [Event URL]

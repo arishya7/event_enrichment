@@ -11,6 +11,7 @@ import json
 # Import AddressExtractor and GoogleCustomSearchAPI
 from address_extractor import *
 from image_extractor import *
+from details_extractor import *
 
 # Load environment variables
 load_dotenv()
@@ -34,11 +35,11 @@ def clean_text(text: str) -> str:
     
     return text
 
-def extract_events(article_dict: dict, google_api_key: str, system_instruction:str, model:str) -> dict:
+def extract_events(article_dict: dict, google_api_key: str, model:str) -> list:
     client = genai.Client(api_key=google_api_key)
     
     generate_config = {    
-        "system_instruction": system_instruction,    
+        "system_instruction": open("system_instruction_1.txt", "r", encoding="utf-8").read(),    
         "temperature": 0.0,
         "response_mime_type": "application/json",
         "response_schema": json.load(open("event_schema_init.json"))
@@ -47,30 +48,33 @@ def extract_events(article_dict: dict, google_api_key: str, system_instruction:s
     #####################################
     # Possibly build safety settings here
     #####################################
+    max_attempts = 2
+    for attempt in range(max_attempts):
+        try:
+            details = verify_events_details(json.dumps(article_dict), google_api_key, model)
+            prompt = json.dumps(details)
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=generate_config
+            )
+            if response.text:
+                return json.loads(response.text)
+            else:
+                print("Response.text does not exist")
+            return None # Successful but empty response
 
-    try:
-        article_dict['content'] = clean_text(article_dict['content'])
-        prompt = json.dumps(article_dict)
-        response = client.models.generate_content(
-            model=model,
-            contents=prompt,
-            config=generate_config
-        )
-        if response.text:
-            return json.loads(response.text)
-        else:
-            print("Response.text does not exist")
-        return None
-
-    except Exception as e:
-        print(response.text)
-        print(f"Error generating content: {e}")
-        return None
+        except Exception as e:
+            print(f"Error on attempt {attempt + 1}/{max_attempts}: {e}")
+            if attempt < max_attempts - 1:
+                print("Retrying...")
+            else:
+                print("Max retries reached. Failed to generate content.")
+                return None
+    return None
 
 if __name__ == "__main__":
-    system_instruction = open("system_instruction.txt", "r").read()
-
-    
+    system_instruction = open("system_instruction_2.txt", "r").read()
     model = "gemini-2.5-flash-preview-05-20"
     def main():
         """Test events extraction with user control"""
@@ -89,15 +93,15 @@ if __name__ == "__main__":
         articles_dir = Path("articles_output")
         
         if not articles_dir.exists():
-            print("❌ articles_output directory not found")
+            print("Articles_output directory not found")
             return
             
         for file in articles_dir.glob("*articles*.json"):
             article_files.append(file)
         
         if not article_files:
-            print("❌ No article files found in articles_output directory")
-            print("   Looking for files with pattern '*articles*.json'")
+            print("No article files found in articles_output directory")
+            print("Looking for files with pattern '*articles*.json'")
             return
         
         print(f"📁 Found {len(article_files)} article file(s):")
@@ -116,28 +120,28 @@ if __name__ == "__main__":
                     selected_file = article_files[file_index]
                     break
                 else:
-                    print(f"❌ Please enter a number between 1 and {len(article_files)}")
+                    print(f"Please enter a number between 1 and {len(article_files)}")
             except ValueError:
-                print("❌ Please enter a valid number or 'q'")
+                print("Please enter a valid number or 'q'")
         
         # Load selected articles
-        print(f"\n📖 Loading articles from: {selected_file.name}")
+        print(f"\nLoading articles from: {selected_file.name}")
         try:
             with open(selected_file, 'r', encoding='utf-8') as f:
                 articles = json.load(f)
             
             if not articles:
-                print("❌ No articles found in file")
+                print("No articles found in file")
                 return
                 
-            print(f"✅ Loaded {len(articles)} articles")
+            print(f"Loaded {len(articles)} articles")
             
         except Exception as e:
-            print(f"❌ Error loading articles: {e}")
+            print(f"Error loading articles: {e}")
             return
         
         # Show articles and let user choose
-        print(f"\n📰 Available articles:")
+        print(f"\nAvailable articles:")
         for i, article in enumerate(articles[:10], 1):  # Show first 10
             title = article.get('title', 'No title')[:60]
             print(f"   {i}. {title}...")

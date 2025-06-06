@@ -42,7 +42,7 @@ def main():
     for blog_name, blog_details in blog_dict.items():
         articles = parse_rss_file(blog_details['rss_file_path'], blog_name, meta_db)
         if articles:
-            top_few_articles = articles[:10]
+            top_few_articles = articles[:5]
             articles_filename = f"{blog_name}_articles.json"
             article_file_path = save_to_json(top_few_articles, articles_filename)
             blog_dict[blog_name]['article_file_path'] = article_file_path
@@ -75,9 +75,9 @@ def main():
         results_ls = []
 
         for i, article_dict in enumerate(articles_ls, 1):
-            print(f"Processing article {i}/{len(articles_ls)}")
+            print(f"Processing article {i}/{len(articles_ls)} from {blog_name}")
             
-            events_ls = extract_events(article_dict, google_api_key, open("system_instruction.txt", "r").read(), "gemini-2.0-flash")
+            events_ls = extract_events(article_dict, google_api_key, "gemini-2.0-flash")
 
             if events_ls:
                 try:
@@ -91,6 +91,7 @@ def main():
                         ########################################################################################################
                         ########################################################################################################
                         ##3##################################### Add images to the event #######################################
+                        
                         image_results_ls = search_images(
                             query=event['title'],
                             api_key=google_api_key,
@@ -102,23 +103,28 @@ def main():
                         downloaded_image_details_ls = []
                         if image_results_ls:
                             
-                            for idx, image_item in enumerate(image_results_ls, 1):
-
+                            for idx, image_link in enumerate(image_results_ls, 1):
                                 filename_without_ext = f"{re.sub(r'[^a-zA-Z0-9]', '_', event['title'])}_{idx}"
                                 img_file_path = images_dir / filename_without_ext
                                 
-                                download_result = download_image(image_item['link'], img_file_path)
+                                download_result = download_image(image_link, img_file_path)
                                 if download_result:
                                     downloaded_image_details_ls.append(download_result)
-
                             if downloaded_image_details_ls:
                                 event['images'] = downloaded_image_details_ls
+                            else:
+                                event['images'] = []
+
+                        else:
+                            event['images'] = []
                         ########################################################################################################
                         ########################################################################################################
                         ########################################################################################################
                     
                     results_ls.extend(events_ls)
+                    print("="*50)
                     print(f"Found {len(events_ls)} events in article {i}")
+                    print("="*50)
                 except json.JSONDecodeError as e:
                     print(f"Error: Invalid JSON response from API for article {i}: {e}")
                     print(f"API Response Text: {events_ls[:500]}...")

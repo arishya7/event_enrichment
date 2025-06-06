@@ -1,2 +1,4 @@
-www.sassymamasg.com/feed,sassymamasg
-sg.theasianparent.com/feed,theasianparent
+http://sassymamasg.com/feed,sassymamasg
+http://sg.theasianparent.com/feed,theasianparent
+http://honeykidsasia.com/feed,honeykidsasia
+http://thesmartlocal.com/feed,thesmartlocal

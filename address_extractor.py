@@ -18,7 +18,6 @@ def get_address_and_coord(query: str, google_api_key: str)->dict:
     response.raise_for_status()
     result = response.json()
     if not result.get('places'):
-        print(f"Warning: No results found for query: {query}")
         return {"address": None, "latitude": None, "longitude": None}
     
     place = result['places'][0] #Top search result 

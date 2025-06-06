@@ -2,54 +2,28 @@
     "type": "array",
     "items": {
       "type": "object",
-      "required": [
-        "title",
-        "description",
-        "guid",
-        "url",
-        "price_display",
-        "price",
-        "is_free",
-        "organiser",
-        "age_group_display",
-        "min_age",
-        "max_age",
-        "datetime_display",
-        "start_datetime",
-        "end_datetime",
-        "venue_name",
-        "categories"
-      ],
+      "required": ["title", "description", "guid", "url", "price_display", "price", "is_free", "organiser", "age_group_display", "min_age", "max_age", "datetime_display", "start_datetime", "end_datetime", "venue_name", "categories"],
       "properties": {
-        "title": { 
-            "type": "string",
-            "minLength": 40,
-            "maxLength": 60
-        },
-        "description": { 
-            "type": "string", 
-            "minLength": 450,
-            "maxLength": 700
-        },
+        "title": {  "type": "string", "minLength": 40, "maxLength": 60},
+        "description": {  "type": "string", "minLength": 450, "maxLength": 700},
         "guid": { "type": "string" },
         "url": { "type": "string" },
-        "price_display": { "type": "string", "description": "The price of the event in a display format, e.g. $100 or \"free\"" },
+        "price_display": { "type": "string", "description": "The price of the event in a display format, e.g. $100 or free" },
         "price": { "type": "number" },
         "is_free": { "type": "boolean" },
         "organiser": { "type": "string" },
-        "age_group_display": { "type": "string", "description": "The age group of the event in a display format, e.g. \"18 months - 3 years\" or \"3 - 12 years\" or \"all ages\"" },
+        "age_group_display": { "type": "string", "description": "The age group of the event in a display format, e.g. \"18 months to 3 years\" or \"3 to 12 years\" or \"all ages\"" },
         "min_age": { "type": "number", "description": "The minimum age of the event in years" },
         "max_age": { "type": "number", "description": "The maximum age of the event in years" },
-        "datetime_display": { "type": "string", "description": "The date and time of the event, e.g. \"1st June 2025, 10am - 11am\" or \"6th June 2025, 9am - 3pm, 10th June 2025, 7pm - 9pm\" or \"Monday to Friday, 10am - 11am\"" },
+        "datetime_display": { "type": "string", "description": "The date and time of the event, e.g. \"1st June 2025, 10am to 11am\" or \"6th June 2025, 9am to 3pm, 10th June 2025, 7pm to 9pm\" or \"Monday to Friday, 10am to 11am\"" },
         "start_datetime": {"type": "string", "description": "The start date and time of the event in ISO 8601 format in SGT timezone. If it does not have a start date, return null", "format": "date-time"},
         "end_datetime": {"type": "string", "description": "The end date and time of the event in ISO 8601 format, in SGT timezone. If it does not have an end date, return null", "format": "date-time"},
         "venue_name": {"type": "string", "description": "The name of the venue of the event"},
         "categories": {
           "type": "array",
-          "description": "Event categories - must include at least one category",
+          "description": "Event categories to must include at least one category",
           "minItems": 1,
-          "items": {
-            "type": "string",
+          "items": { "type": "string",
             "enum": ["Indoor", "Outdoor", "Performance", "Exhibition", "Sport", "Festival", "Market", "Community", "Adventure", "Workshop", "Occasion"]
           }
         }
