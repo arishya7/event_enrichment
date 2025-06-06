@@ -42,7 +42,7 @@ def main():
     for blog_name, blog_details in blog_dict.items():
         articles = parse_rss_file(blog_details['rss_file_path'], blog_name, meta_db)
         if articles:
-            top_few_articles = articles[:5]
+            top_few_articles = articles[:10]
             articles_filename = f"{blog_name}_articles.json"
             article_file_path = save_to_json(top_few_articles, articles_filename)
             blog_dict[blog_name]['article_file_path'] = article_file_path
@@ -67,7 +67,7 @@ def main():
         images_dir.mkdir(parents=True, exist_ok=True)
         
         article_file_path = blog_details['article_file_path']
-        articles_ls = json.load(open(article_file_path, 'r', encoding='utf-8'))  
+        articles_ls = json.load(open(article_file_path, 'r', encoding='utf-8'))
         if not articles_ls:
             print("Error: Could not load articles data")
             continue

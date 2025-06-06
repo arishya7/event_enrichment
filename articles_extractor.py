@@ -236,6 +236,8 @@ def parse_rss_file(file_path: str, blog_name: str, meta_db: MetaDatabase) -> Lis
             categories = [clean_html(cat.text) for cat in item.findall('category')]
             all_text = ET.tostring(item, encoding='unicode')
             urls = extract_urls(all_text)
+            article_website = item.findtext('link', '')
+            
 
             # Create article dictionary
             article = {
@@ -245,7 +247,8 @@ def parse_rss_file(file_path: str, blog_name: str, meta_db: MetaDatabase) -> Lis
                 'content': content,
                 'urls': urls,
                 'guid': guid,
-                'post_id': str(post_id)  # Store as string in output for consistency
+                'post_id': str(post_id),  # Store as string in output for consistency
+                'article_website': article_website
             }
             
             articles.append(article)

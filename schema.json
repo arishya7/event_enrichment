@@ -1,172 +1,62 @@
 {
-    "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://example.com/schemas/event.schema.json",
-    "title": "Web scraping event schema",
-    "description": "Schema for scraped event content. Utilised GCP for database storage, hosting, and image processing.",
-    "type": "object",
-    "required": [
-        "pid",
+    "type": "array",
+    "items": {
+      "type": "object",
+      "required": [
         "title",
         "description",
-        "start_date",
-        "end_date",
-        "venue",
+        "guid",
+        "url",
+        "price_display",
         "price",
-        "images",
-        "source",
-        "metadata"
-    ],
-    "properties": {
-        "pid": {
+        "is_free",
+        "organiser",
+        "age_group_display",
+        "min_age",
+        "max_age",
+        "datetime_display",
+        "start_datetime",
+        "end_datetime",
+        "venue_name",
+        "categories"
+      ],
+      "properties": {
+        "title": { 
             "type": "string",
-            "description": "Primary ID, RSS <guid>. Use for unique identification of events."
+            "minLength": 40,
+            "maxLength": 60
         },
-        "title": {
-            "type": "string"
+        "description": { 
+            "type": "string", 
+            "minLength": 450,
+            "maxLength": 700
         },
-        "description": {
-            "type": "object",
-            "required": [
-                "original",
-                "blurb"
-            ],
-            "properties": {
-                "original": {
-                    "type": "string"
-                },
-                "blurb": {
-                    "type": "string"
-                }
-            }
-        },
-        "start_date": {
+        "guid": { "type": "string" },
+        "url": { "type": "string" },
+        "price_display": { "type": "string", "description": "The price of the event in a display format, e.g. $100 or \"free\"" },
+        "price": { "type": "number" },
+        "is_free": { "type": "boolean" },
+        "organiser": { "type": "string" },
+        "age_group_display": { "type": "string", "description": "The age group of the event in a display format, e.g. \"18 months - 3 years\" or \"3 - 12 years\" or \"all ages\"" },
+        "min_age": { "type": "number", "description": "The minimum age of the event in years" },
+        "max_age": { "type": "number", "description": "The maximum age of the event in years" },
+        "datetime_display": { "type": "string", "description": "The date and time of the event, e.g. \"1st June 2025, 10am - 11am\" or \"6th June 2025, 9am - 3pm, 10th June 2025, 7pm - 9pm\" or \"Monday to Friday, 10am - 11am\"" },
+        "start_datetime": {"type": "string", "description": "The start date and time of the event in ISO 8601 format in SGT timezone. If it does not have a start date, return null", "format": "date-time"},
+        "end_datetime": {"type": "string", "description": "The end date and time of the event in ISO 8601 format, in SGT timezone. If it does not have an end date, return null", "format": "date-time"},
+        "venue_name": {"type": "string", "description": "The name of the venue of the event"},
+        "categories": {
+          "type": "array",
+          "description": "Event categories - must include at least one category",
+          "minItems": 1,
+          "items": {
             "type": "string",
-            "format": "date-time"
+            "enum": ["Indoor", "Outdoor", "Performance", "Exhibition", "Sport", "Festival", "Market", "Community", "Adventure", "Workshop", "Occasion"]
+          }
         },
-        "end_date": {
-            "type": "string",
-            "format": "date-time"
-        },
-        "booking_url": {
-            "type": "string",
-            "format": "uri"
-        },
-        "organiser": {
-            "type": "string"
-        },
-        "venue": {
-            "type": "object",
-            "required": [
-                "name",
-                "address",
-                "lat",
-                "lng"
-            ],
-            "properties": {
-                "name": {
-                    "type": "string"
-                },
-                "address": {
-                    "type": "string"
-                },
-                "lat": {
-                    "type": "float"
-                },
-                "lng": {
-                    "type": "float"
-                }
-            }
-        },
-        "price": {
-            "type": "object",
-            "required": [
-                "amount",
-                "currency",
-                "is_free"
-            ],
-            "properties": {
-                "amount": {
-                    "type": "float"
-                },
-                "currency": {
-                    "type": "string"
-                },
-                "is_free": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "images": {
-            "type": "object",
-            "required": [
-                "original_website",
-                "google_maps"
-            ],
-            "properties": {
-                "original_website": {
-                    "type": "array",
-                    "minItems": 0,
-                    "maxItems": 3,
-                    "uniqueItems": true,
-                    "items": {
-                        "type": "string",
-                        "format": "uri",
-                        "description": "Firestore URI for source-site-downloaded image"
-                    }
-                },
-                "google_maps": {
-                    "type": "array",
-                    "minItems": 0,
-                    "maxItems": 3,
-                    "uniqueItems": true,
-                    "items": {
-                        "type": "string",
-                        "format": "uri",
-                        "description": "Firestore URI for downloaded Google Maps Place Photo API image"
-                    }
-                }
-            }
-        },
-        "source": {
-            "type": "object",
-            "required": [
-                "site",
-                "source_link",
-                "guid",
-                "scraped_on"
-            ],
-            "properties": {
-                "site": {
-                    "type": "string"
-                },
-                "source_link": {
-                    "type": "string",
-                    "format": "uri"
-                },
-                "guid": {
-                    "type": "string"
-                },
-                "scraped_on": {
-                    "type": "string",
-                    "format": "date-time"
-                }
-            }
-        },
-        "metadata": {
-            "type": "object",
-            "required": [
-                "last_updated"
-            ],
-            "properties": {
-                "editor_notes": {
-                    "type": "string"
-                },
-                "last_updated": {
-                    "type": "string",
-                    "format": "date-time"
-                }
-            }
-        }
-    },
-    "additionalProperties": false
+        "scraped_on": {"type": "string", "description": "The date and time the event was scraped in ISO 8601 format, in SGT timezone"},
+        "address": {"type": "string", "description": "The address of the event"},
+        "longitude": {"type": "number", "description": "The longitude of the event"},
+        "latitude": {"type": "number", "description": "The latitude of the event"}
+      }
+    }
 }

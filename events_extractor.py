@@ -38,8 +38,7 @@ def extract_events(article_dict: dict, google_api_key: str, system_instruction:s
     client = genai.Client(api_key=google_api_key)
     
     generate_config = {    
-        "system_instruction": system_instruction,
-        "tools": [types.Tool(url_context=types.UrlContext)],
+        "system_instruction": system_instruction,    
         "temperature": 0.0,
         "response_mime_type": "application/json",
         "response_schema": json.load(open("event_schema_init.json"))
@@ -49,7 +48,6 @@ def extract_events(article_dict: dict, google_api_key: str, system_instruction:s
     # Possibly build safety settings here
     #####################################
 
-    response = None
     try:
         article_dict['content'] = clean_text(article_dict['content'])
         prompt = json.dumps(article_dict)
@@ -58,35 +56,22 @@ def extract_events(article_dict: dict, google_api_key: str, system_instruction:s
             contents=prompt,
             config=generate_config
         )
-        print(response)
         if response.text:
-            try:
-                return json.loads(response.text)
-            except json.JSONDecodeError as e:
-                print(f"Error parsing response JSON: {e}")
-                return None
+            return json.loads(response.text)
+        else:
+            print("Response.text does not exist")
         return None
 
     except Exception as e:
-        if response:
-            print(response)
-            # Try to convert response to JSON string first
-            try:
-                json_str = json.dumps(response.json())
-                # Save response as JSON file
-                output_file = "events_output/extraction_error.json"
-                with open(output_file, "w", encoding="utf-8") as f:
-                    f.write(json_str)
-                print(f"Error response saved to {output_file}")
-            except Exception as json_err:
-                print(f"Could not save error response: {json_err}")
+        print(response.text)
         print(f"Error generating content: {e}")
         return None
 
 if __name__ == "__main__":
     system_instruction = open("system_instruction.txt", "r").read()
-    system_instruction = system_instruction + "\n" + json.dumps(json.load(open("event_schema_init.json")))
-    model = "gemini-2.0-flash"
+
+    
+    model = "gemini-2.5-flash-preview-05-20"
     def main():
         """Test events extraction with user control"""
         print("=== Events Extractor Test ===\n")
@@ -217,6 +202,9 @@ if __name__ == "__main__":
                 if isinstance(events_result, list):
                     events = events_result # Assume the list itself is the list of events
                     print(f"✅ Found {len(events)} event(s) (returned as a direct list):")
+                elif events_result and isinstance(events_result, dict) and events_result.get('events'):
+                    events = events_result['events']
+                    print(f"✅ Found {len(events)} event(s) (from dict key 'events'):")
                 else:
                     events = [] # No events found or unexpected format
                     print(events_result)

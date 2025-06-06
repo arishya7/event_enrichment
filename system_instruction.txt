@@ -5,7 +5,10 @@ Steps:
 1.	Identify qualifying family-friendly recreational events as previously instructed — events must be one-time or short-term, not ongoing services or businesses. If there is no suitable events extracted, return empty array: \"[]\"
 2.  Match the events with the list of urls provided, as much as possible. 
 3.	For datetime and venue, extract these fields from the URL provided you matched (if any), and combined it with the articles content to provide output for these field.
-4.	Return the event using the structured schema. If you cannot find a matching URL or the page does not contain additional valid details, use NULL for unknown values.
+4.	Return the event using the structured schema. 
+5.  If you cannot find a matching URL or the page does not contain additional valid details, use NULL for unknown values.
 
 Notes:
 -   Do not mentioned about the blog being extracted
+-   Do not provide datetime that happens in the past
+-   Extract a maximum of 10 events per article.
