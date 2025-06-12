@@ -4,10 +4,11 @@
       "type": "object",
       "required": ["title", "description", "guid", "url", "price_display", "price", "is_free", "organiser", "age_group_display", "min_age", "max_age", "datetime_display", "start_datetime", "end_datetime", "venue_name", "categories"],
       "properties": {
-        "title": {  "type": "string", "minLength": 40, "maxLength": 60},
+        "title": {  "type": "string", "minLength": 40, "maxLength": 50, "description": "The title of the event. Do not mention the location or date or time of the event here."},
+        "blurb" : { "type": "string", "minLength": 40, "maxLength": 60, "description": "A short description of the event to put on the event card" },
         "description": {  "type": "string", "minLength": 450, "maxLength": 700},
         "guid": { "type": "string" },
-        "url": { "type": "string" },
+        "url": { "type": "string", "description": "The URL of the event. Extract from URL, not the GUID." },
         "price_display": { "type": "string", "description": "The price of the event in a display format, e.g. $100 or free" },
         "price": { "type": "number" },
         "is_free": { "type": "boolean" },

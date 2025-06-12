@@ -9,7 +9,6 @@ from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 from bisect import bisect_left
 import requests
-import cloudscraper
 
 class GuidDatabase:
     def __init__(self, blog_name: str, database_dir: Path):
@@ -96,9 +95,9 @@ class MetaDatabase:
         }
 
 def extract_rss_feed(blog_url: str, filename: str):
-    # Define headers to mimic a real browser
+    # Define headers to mimic a real browser (will only use if needed)
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
         'Accept-Encoding': 'gzip, deflate, br',
@@ -107,51 +106,53 @@ def extract_rss_feed(blog_url: str, filename: str):
         'DNT': '1'  # Do Not Track
     }
 
+    # List of possible feed URL formats to try
+    feed_formats = [
+        f"https://{blog_url}",  # Original format
+        f"https://{blog_url.replace('/feed/', '')}/feed",  # Without trailing slash
+        f"https://{blog_url.replace('/feed', '')}/feed",   # Different feed path
+        f"https://{blog_url.split('/')[0]}/feed"          # Root feed
+    ]
     output_path = os.path.join('RSS_temp', filename)
-    scraper = cloudscraper.create_scraper()
-    response = None
-
-    try:
-        # First, try without custom headers
-        print(f"Attempting to fetch {blog_url} without headers...")
-        response = scraper.get(blog_url, timeout=15)
-        response.raise_for_status()
-        print("Successfully fetched on the first attempt.")
-    
-    except requests.RequestException as e:
-        # If it fails (e.g., 403 Forbidden), try again with headers
-        if response is not None and 400 <= response.status_code < 500:
-            print(f"Initial request failed with status {response.status_code}. Retrying with headers...")
-            try:
-                response = scraper.get(blog_url, headers=headers, timeout=15)
-                response.raise_for_status()
-                print("Successfully fetched with headers.")
-            except requests.RequestException as e2:
-                print(f"Error: Failed to fetch {blog_url} even with headers. Reason: {str(e2)}")
-                return False
-        else:
-            # Handle other request exceptions (connection errors, timeouts, etc.)
-            print(f"Error: Failed to fetch {blog_url}. Reason: {str(e)}")
-            return False
-
-    # If we have a successful response from either attempt, process it
-    try:
-        content_type = response.headers.get('Content-Type', '').lower()
-        is_xml_content_type = 'xml' in content_type
-        is_xml_declaration = response.text.lstrip().startswith('<?xml')
-        
-        if is_xml_content_type or is_xml_declaration:
-            with open(output_path, 'w', encoding='utf-8') as f:
-                f.write(response.text.strip())
-            print(f"Successfully fetched and saved RSS feed from {blog_url}")
-            return output_path
-        else:
-            print(f"Error: URL {blog_url} returned non-XML content (Content-Type: {content_type}).")
-            return False
+    last_error = None
+    for feed_url in feed_formats:
+        try:
             
-    except Exception as e:
-        print(f"An unexpected error occurred with {blog_url} while processing the response: {str(e)}")
-        return False
+            # First try without headers
+            try:
+                response = requests.get(feed_url, timeout=10)
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                if response.status_code == 403:
+                    print("Got 403 error, retrying with browser headers...")
+                    response = requests.get(feed_url, headers=headers, timeout=10)
+                    response.raise_for_status()
+                else:
+                    raise e
+
+            # Check if response is actually RSS/XML content
+            if 'xml' in response.headers.get('Content-Type', '').lower() or '<?xml' in response.text[:100]:
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    f.write(response.text)
+                return output_path
+            else:
+                print(f"URL {feed_url} returned non-XML content, try another format")
+                
+        except requests.RequestException as e:
+            print(f"Failed to fetch {feed_url}: {str(e)}")
+            last_error = e
+            continue
+        except Exception as e:
+            print(f"Unexpected error with {feed_url}: {str(e)}")
+            last_error = e
+            continue
+
+    # If we get here, none of the formats worked
+    if last_error:
+        print(f"Error: Could not fetch RSS feed from any URL format for {blog_url}: {str(last_error)}")
+    else:
+        print(f"Error: Could not find valid RSS feed for {blog_url}")
+    return False
 
 def extract_post_id(guid: str) -> int:
     try:
@@ -184,20 +185,11 @@ def extract_urls(text: str) -> List[str]:
     
     # Remove any tracking parameters
     clean_urls = []
-    # Load blog websites and get blog names to filter
-    blog_names = []
-    try:
-        with open('blog_websites.txt', 'r') as f:
-            for line in f:
-                blog_name = line.strip().split(',')[1]
-                blog_names.append(blog_name)
-    except Exception as e:
-        print(f"Error loading blog_websites.txt: {e}")
-        
     for url in urls:
-        # Skip URLs that start with # or contain blog names
-        if url.startswith('#') or any(blog in url for blog in blog_names):
+        # Skip URLs that start with # or contain sassymamasg
+        if url.startswith('#') or 'sassymamasg' in url or 'theasianparent' in url:
             continue
+            
         # Remove tracking parameters
         base_url = url.split('?')[0]
         # Remove trailing punctuation
@@ -244,8 +236,6 @@ def parse_rss_file(file_path: str, blog_name: str, meta_db: MetaDatabase) -> Lis
             categories = [clean_html(cat.text) for cat in item.findall('category')]
             all_text = ET.tostring(item, encoding='unicode')
             urls = extract_urls(all_text)
-            article_website = item.findtext('link', '')
-            
 
             # Create article dictionary
             article = {
@@ -255,8 +245,7 @@ def parse_rss_file(file_path: str, blog_name: str, meta_db: MetaDatabase) -> Lis
                 'content': content,
                 'urls': urls,
                 'guid': guid,
-                'post_id': str(post_id),  # Store as string in output for consistency
-                'article_website': article_website
+                'post_id': str(post_id)  # Store as string in output for consistency
             }
             
             articles.append(article)
@@ -312,42 +301,46 @@ def main():
         
     # Show available blogs
     print("📚 Available blogs:")
-    blog_keys = list(blog_dict.keys())
-    for i, blog_name in enumerate(blog_keys, 1):
+    for i, (blog_name, _) in enumerate(blog_dict.items(), 1):
         print(f"   {i}. {blog_name}")
-    print(f"   {len(blog_keys) + 1}. ALL BLOGS")
-
+    
     # User selection for blog
-    blogs_to_process = []
     while True:
         try:
-            choice = input(f"\nSelect an option (1-{len(blog_keys) + 1}) or 'q' to quit: ").strip()
+            choice = input(f"\nSelect blog (1-{len(blog_dict)}) or 'q' to quit: ").strip()
             if choice.lower() == 'q':
                 return
-            
-            choice_num = int(choice)
-            if 1 <= choice_num <= len(blog_keys):
-                selected_blog_name = blog_keys[choice_num - 1]
-                blogs_to_process.append(selected_blog_name)
-                break
-            elif choice_num == len(blog_keys) + 1:
-                blogs_to_process = blog_keys
-                print("✅ Selected to process ALL blogs.")
+                
+            blog_index = int(choice) - 1
+            if 0 <= blog_index < len(blog_dict):
+                selected_blog_name = list(blog_dict.keys())[blog_index]
+                selected_blog = blog_dict[selected_blog_name]
                 break
             else:
-                print(f"❌ Please enter a number between 1 and {len(blog_keys) + 1}")
+                print(f"❌ Please enter a number between 1 and {len(blog_dict)}")
         except ValueError:
             print("❌ Please enter a valid number or 'q'")
-
+    
     # Create RSS_temp directory
     os.makedirs('RSS_temp', exist_ok=True)
+    
+    # Extract RSS feed
+    print(f"\n📥 Extracting RSS feed for {selected_blog_name}...")
+    filename = f"{selected_blog_name}.xml"
+    rss_path = extract_rss_feed(selected_blog['blog_url'], filename)
+    
+    if not rss_path:
+        print("❌ Failed to extract RSS feed")
+        return
+    print("✅ RSS feed extracted successfully")
+    
+    # Initialize MetaDatabase
     meta_db = MetaDatabase()
-    total_extracted_count = 0
-
+    
     # Get user input for number of articles
     while True:
         try:
-            print("\nHow many articles do you want to extract per blog?")
+            print("\nHow many articles do you want to extract?")
             print("1. All new articles")
             print("2. Specify number")
             print("3. Quit")
@@ -370,46 +363,29 @@ def main():
                 print("❌ Please enter 1, 2, or 3")
         except ValueError:
             print("❌ Please enter a valid number")
-
-    # --- Process all selected blogs ---
-    for i, blog_name in enumerate(blogs_to_process, 1):
-        print(f"\n--- Processing Blog {i}/{len(blogs_to_process)}: {blog_name} ---")
-        blog_info = blog_dict[blog_name]
-        
-        # Extract RSS feed
-        print(f"📥 Extracting RSS feed for {blog_name}...")
-        filename = f"{blog_name}.xml"
-        rss_path = extract_rss_feed(blog_info['blog_url'], filename)
-        
-        if not rss_path:
-            print(f"❌ Failed to extract RSS feed for {blog_name}. Skipping.")
-            continue
-        print("✅ RSS feed extracted successfully.")
-        
-        # Parse RSS and extract articles
-        print(f"📝 Extracting articles from RSS feed...")
-        articles = parse_rss_file(rss_path, blog_name, meta_db)
-        
-        if not articles:
-            print(f"ℹ️ No new articles found for {blog_name}.")
-            continue
-        
-        # Limit articles if specified
-        if num_articles is not None:
-            articles = articles[:num_articles]
-        
-        # Save articles
-        articles_filename = f"{blog_name}_articles.json"
-        output_path = save_to_json(articles, articles_filename)
-        total_extracted_count += len(articles)
-
-    # Save metadata for the entire run
+    
+    # Parse RSS and extract articles
+    print(f"\n📝 Extracting articles from RSS feed...")
+    articles = parse_rss_file(rss_path, selected_blog_name, meta_db)
+    
+    if not articles:
+        print("❌ No new articles found")
+        return
+    
+    # Limit articles if specified
+    if num_articles is not None:
+        articles = articles[:num_articles]
+    
+    # Save articles
+    articles_filename = f"{selected_blog_name}_articles.json"
+    output_path = save_to_json(articles, articles_filename)
+    
+    # Save metadata
     meta_db.save_current_run()
     
-    print("\n\n======= ✨ Overall Summary ✨ =======")
-    print(f"🔄 Processed {len(blogs_to_process)} blog(s).")
-    print(f"📊 Total new articles extracted: {total_extracted_count}")
-    print(f"✅ See 'articles_output' for JSON files and 'meta_database' for history.")
+    print("\n✨ Summary:")
+    print(f"📊 Total articles extracted: {len(articles)}")
+    print(f"💾 Articles saved to: {output_path}")
     
 if __name__ == "__main__":
     main() 

@@ -12,12 +12,6 @@ import re
 load_dotenv()
 
 def search_images(query: str, api_key: str, cx: str, num_results: int = 10, site_to_search: Optional[str] = None) -> Optional[List[str]]:
-    """
-    Searches for images using a two-step process:
-    1. Fetches the first half of num_results from a site-specific search.
-    2. Fetches the second half from a general search.
-    Returns a combined list of unique URLs.
-    """
     if not api_key or not cx:
         print("Error: API Key or CX is missing for search_images call.")
         return None
@@ -25,36 +19,37 @@ def search_images(query: str, api_key: str, cx: str, num_results: int = 10, site
     base_url = "https://www.googleapis.com/customsearch/v1"
     found_urls = set()
 
+    exclude_sites = "lookaside OR sassymamasg OR honeykidsasia OR thesmartlocal OR theasianparent"
+
+
+
     num_site_results = num_results // 2
     num_general_results = num_results - num_site_results
 
-    # --- 1. Site-Restricted Search ---
     if site_to_search and site_to_search.lower() != 'null' and num_site_results > 0:
-        print(f"Performing site-restricted search for {num_site_results} images...")
         try:
             netloc = urlparse(site_to_search).netloc
             if netloc:
                 params = {
                     "key": api_key, "cx": cx, "q": query,
                     "searchType": "image", "num": num_site_results,
-                    "siteSearch": netloc, "siteSearchFilter": "i"
+                    "siteSearch": netloc, "siteSearchFilter": "i",
+                    "excludeTerms": exclude_sites
                 }
                 response = requests.get(base_url, params=params, timeout=10)
                 response.raise_for_status()
                 data = response.json()
                 for item in data.get("items", []):
                     found_urls.add(item['link'])
-                print(f"Found {len(found_urls)} images from site search.")
         except Exception as e:
             print(f"Site-restricted search failed: {e}")
 
-    # --- 2. General Search ---
     if num_general_results > 0:
-        print(f"Performing general search for {num_general_results} images...")
         try:
             params = {
                 "key": api_key, "cx": cx, "q": query,
-                "searchType": "image", "num": num_general_results
+                "searchType": "image", "num": num_general_results,
+                "excludeTerms": exclude_sites
             }
             response = requests.get(base_url, params=params, timeout=10)
             response.raise_for_status()
@@ -62,7 +57,6 @@ def search_images(query: str, api_key: str, cx: str, num_results: int = 10, site
             initial_count = len(found_urls)
             for item in data.get("items", []):
                 found_urls.add(item['link'])
-            print(f"Found {len(found_urls) - initial_count} new images from general search.")
         except Exception as e:
             print(f"Broad image search failed: {e}")
 
@@ -70,7 +64,6 @@ def search_images(query: str, api_key: str, cx: str, num_results: int = 10, site
         print("No images found from any source.")
         return None
     
-    print(f"Returning a total of {len(found_urls)} unique images.")
     return list(found_urls)
 
 def download_image(image_url: str, filepath: Path) -> Dict[str, str]:
@@ -130,7 +123,7 @@ def download_image(image_url: str, filepath: Path) -> Dict[str, str]:
         result = {
             "local_path": local_path_str, 
             "original_url": image_url,
-            "filename": final_filepath.name,
+            "filename": local_path_str,
             "source_credit": source_credit
         }
         return result
@@ -151,7 +144,9 @@ def download_image(image_url: str, filepath: Path) -> Dict[str, str]:
 
 def main():
     print("--- Running image_extractor.py directly for testing ---")
-    print(search_images("Explore the Enchanting World of Wildlife at Night Safari at Night Safari", api_key=os.getenv("GOOGLE_API_KEY"), cx=os.getenv("cx"), num_results=10, site_to_search="https://www.mandai.com/en/see-and-do/signature-tours/night-safari/safari-adventure-tour.html"))
+    search_query = input("Enter a search query: ")
+    site_to_search = input("Enter a site to search: ")
+    print(search_images(search_query, api_key=os.getenv("GOOGLE_API_KEY"), cx=os.getenv("cx"), num_results=10, site_to_search=site_to_search))
 
 if __name__ == "__main__":
     main()

@@ -1,10 +1,13 @@
 You will be extracting events from an article. Follow the format below as much as possible.
 If there are no events extracted, return an empty array: "[]"
+Events must be activities that families can do. It SHOULD not be about regular enrichment or tuition classes.
+If the article mentions events under a particular event group, returns just the event group. (For instance, a fair that consists multiple activities, return the output just the fair, and not the multiple activities.)
 
 For each event identified, follow the task below:
-    For each event, search the internet and go to a reliable source website (e.g., the official event organizer's site, a reputable ticketing platform) to obtain the following information. Do not use the initial blog website or any other blog-like sources.
+    Go to the article website itself. Extract all the information below that is needed.
+    Then, search the internet and go to a reliable source website (e.g., the official event organizer's site, a reputable ticketing platform) to verify or add more information that the blog website could not provide.
 
-        1.  **Title:** Extract the title of the event. The length **MUST** between 40 to 70 characters.
+        1.  **Title:** Extract the title of the event. The length **MUST** between 40 to 70 characters. Do not mention the location or date or time of the event here.
         2.  **Description:** Extract the description of the event. The length **MUST** between 400 to 700 characters. Expand the description if you need to reach a suitable length.
         3.  **Venue:** Extract the venue of the event. Provide multiple venues if the event occurs at more than one location. If no venue is specified, state "Online" or "To be announced" as appropriate. Search the web if the exact venues not provided.
         4.  **Schedule:** Extract the schedule of the event.
@@ -14,11 +17,11 @@ For each event identified, follow the task below:
         5.  **Cost:** Extract the cost of the event.
             * State "Free" if there is no cost.
             * Show all available price ranges and explicitly include currency symbols (e.g., "$10 - $50", "SGD 25", "Free").
-        6.  **URL:** Match the links from \"urls\" field to each event as much as possible, where you can find more official details about the events. Do not use blog websites. If you cannot match, find a suitable URL link from the internet. 
+            * If there are promotion related to the articles blog, DO NOT MENTION IT. The blog articles are: sassymamasg, theasianparent, honeykidsasia, thesmartlocal
+        6.  **URL:** Match the links from \"urls\" field to each event as much as possible, where you can find more official details about the events. Do not use blog websites. If you cannot match, find a suitable URL link from the internet. It can be from website where customer buys the ticket from (e.g. eventbrite or sistc), not necessary from the source website.
 
 Example of output (in text, not in json):
 
-Article data (complusory to have)
 Article title: [Article Title from source]
 GUID: [Full URL from GUID]
 post_id: [the id provided from GUID url parameter]

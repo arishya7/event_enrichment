@@ -58,8 +58,11 @@ def extract_events(article_dict: dict, google_api_key: str, model:str) -> list:
                 contents=prompt,
                 config=generate_config
             )
-            if response.text:
-                return json.loads(response.text)
+            if response.text and response.text !="[]":
+                return json.loads(clean_text(response.text))
+            elif response.text == "[]":
+                # Retry again
+                continue
             else:
                 print("Response.text does not exist")
             return None # Successful but empty response
@@ -199,7 +202,7 @@ if __name__ == "__main__":
             print(f"\n🔍 Extracting events...")
             
             try:
-                events_result = extract_events(article, google_api_key,system_instruction, model="gemini-2.5-pro-preview-05-06")
+                events_result = extract_events(article, google_api_key, "gemini-2.5-pro-preview-05-06")
                 
                 print(f"{'='*80}")
                 # Handle if events_result is a list (API might return list directly)

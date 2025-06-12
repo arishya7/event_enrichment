@@ -133,6 +133,7 @@ celerybeat.pid
 env/
 venv/
 venv2/
+venv3/
 ENV/
 env.bak/
 venv.bak/
@@ -177,11 +178,19 @@ cython_debug/
 # Ignore all files in the events_output directory
 events_output/*
 
+# Ignore all files in events_output_temp directory
+events_output_temp/*
+
 # Ignore all files in the articles_output directory
 articles_output/*
 
 # Ignore all files in RSS output directory
-rss_output/*
+RSS_temp/*
 
 # Ignore all files in metadata directory
-metadata_database/*
+meta_database/*
+meta_database/**/*
+
+
+events.json
+
