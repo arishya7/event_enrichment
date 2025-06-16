@@ -5,7 +5,8 @@ from pathlib import Path
 all_events = []
 
 # Get all JSON files from events_output directory
-events_dir = Path("events_output/20250612_131316")
+timestamp = input("Enter the subfolder name of the events to merge: ")
+events_dir = Path("events_output/"+timestamp)
 json_files = list(events_dir.glob("*.json"))
 
 # Read each JSON file and combine their contents
@@ -18,7 +19,7 @@ for json_file in json_files:
 print(f"\nTotal events collected: {len(all_events)}")
 
 # Save combined events to events.json in root directory
-output_file = Path("events.json")
+output_file = Path(f"events_{timestamp}.json")
 with open(output_file, 'w', encoding='utf-8') as f:
     json.dump(all_events, f, indent=2, ensure_ascii=False)
 

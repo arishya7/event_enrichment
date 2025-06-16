@@ -176,18 +176,18 @@ def clean_html(html_text: str) -> str:
     
     return text.strip()
 
-def extract_urls(text: str) -> List[str]:
+def extract_urls(url: str) -> List[str]:
     # Pattern to match href attributes
     href_pattern = r'href=["\'](.*?)["\']'
     
     # Find all href URLs
-    urls = re.findall(href_pattern, text)
+    urls = re.findall(href_pattern, url)
     
     # Remove any tracking parameters
     clean_urls = []
+    blog_ls = [blog.split(',')[1] for blog in open('blog_websites.txt', 'r').read().split('\n')]
     for url in urls:
-        # Skip URLs that start with # or contain sassymamasg
-        if url.startswith('#') or 'sassymamasg' in url or 'theasianparent' in url:
+        if url.startswith('#') or any(blog in url for blog in blog_ls):
             continue
             
         # Remove tracking parameters

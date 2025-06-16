@@ -124,6 +124,9 @@ def display_events_in_directory(directory: Path):
             # Display events in expanders
             for event in filtered_events:
                 with st.expander(f"**{event.get('title')}**"):
+                    st.write("-"*100)
+                    st.write(f"Blurb: {event.get('blurb', 'N/A')}")
+                    st.write("-"*100)
                     # --- Main Details in Columns ---
                     col1, col2 = st.columns(2)
                     
@@ -151,7 +154,7 @@ def display_events_in_directory(directory: Path):
                     handled_fields = {
                         'title', 'venue_name', 'datetime_display', 'full_address', 
                         'price_display', 'age_group_display', 'url', 
-                        'description', 'categories', 'images'
+                        'description', 'categories', 'images', 'blurb'
                     }
                     additional_details = {k: v for k, v in event.items() if k not in handled_fields and v}
                     st.markdown("-"*100)

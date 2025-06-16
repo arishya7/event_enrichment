@@ -73,7 +73,6 @@ def main():
                 top_few_articles = articles[25:27]
             else:
                 top_few_articles = articles[50:52]
-            # top_few_articles = articles[15:50] 
             articles_filename = f"{blog_name}_articles.json"
             article_file_path = save_to_json(top_few_articles, articles_filename)
             blog_dict[blog_name]['article_file_path'] = article_file_path
@@ -102,6 +101,7 @@ def main():
             continue
         
         results_ls = []
+        
 
         for i, article_dict in enumerate(articles_ls, 1):
             print(f"\nProcessing article {i}/{len(articles_ls)} from {blog_name}: {article_dict['guid']}")

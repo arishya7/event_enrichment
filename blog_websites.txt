@@ -1,4 +1,6 @@
-http://sassymamasg.com/feed,sassymamasg
-http://sg.theasianparent.com/feed,theasianparent
-http://honeykidsasia.com/feed,honeykidsasia
-http://thesmartlocal.com/feed,thesmartlocal
+sassymamasg.com/feed,sassymamasg
+sg.theasianparent.com/feed,theasianparent
+honeykidsasia.com/feed,honeykidsasia
+thesmartlocal.com/feed,thesmartlocal
+thenewageparents.com/feed,thenewageparents
+thehoneycombers.com/singapore/feed,thehoneycombers

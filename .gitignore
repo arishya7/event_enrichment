@@ -191,6 +191,5 @@ RSS_temp/*
 meta_database/*
 meta_database/**/*
 
-
-events.json
-
+events_total/*
+events_total/**/*
