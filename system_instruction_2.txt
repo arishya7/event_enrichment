@@ -8,3 +8,4 @@ Criteria to skip events:
 - Enrichment classes (regular ones without noting special ocasion or events)
 - Shops selling products (without any activities or events)
 - Mentions sassymamasg, honeykidsasia, thesmartlocal
+- Events that mention LGBTQ or adult content

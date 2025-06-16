@@ -1,6 +1,10 @@
 You will be extracting events from an article. Follow the format below as much as possible.
 If there are no events extracted, return an empty array: "[]"
-Events must be activities that families can do. It SHOULD not be about regular enrichment or tuition classes.
+Events must be activities that families can do. 
+It SHOULD not be 
+- about regular enrichment or tuition classes (UNLESS there is special classes like one time trial lesson) 
+- places to visit (e.g. tourism attraction or cafe spots) 
+- generic activities (e.g. visiting to the park for playground)
 If the article mentions events under a particular event group, returns just the event group. (For instance, a fair that consists multiple activities, return the output just the fair, and not the multiple activities.)
 
 For each event identified, follow the task below:

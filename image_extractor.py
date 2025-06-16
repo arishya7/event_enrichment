@@ -109,21 +109,19 @@ def download_image(image_url: str, filepath: Path) -> Dict[str, str]:
                 extension = ".webp"
         
         # Add extension to filepath
-        final_filepath = filepath.with_suffix(extension)
-
+        filepath = filepath.with_suffix(extension)
+        filepath_name = str(filepath)
         # Ensure directory exists
-        final_filepath.parent.mkdir(parents=True, exist_ok=True)
+        filepath.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(final_filepath, 'wb') as f:
+        with open(filepath, 'wb') as f:
             response.raw.decode_content = True
             shutil.copyfileobj(response.raw, f)
-        
-        local_path_str = str(final_filepath.relative_to(Path.cwd()) if final_filepath.is_absolute() else final_filepath)
-        
+                
         result = {
-            "local_path": local_path_str, 
+            "local_path": str(filepath), 
             "original_url": image_url,
-            "filename": local_path_str,
+            "filename": filepath.name,
             "source_credit": source_credit
         }
         return result
@@ -136,7 +134,7 @@ def download_image(image_url: str, filepath: Path) -> Dict[str, str]:
         print(f"    Error downloading image {image_url}: {e}")
         return {}
     except IOError as e:
-        print(f"IO Error saving image to {final_filepath}: {e}")
+        print(f"IO Error saving image to {filepath}: {e}")
         return {}
     except Exception as e:
         print(f"An unexpected error occurred for {image_url}: {e}")

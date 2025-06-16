@@ -15,7 +15,7 @@ def verify_events_details(prompt: str, google_api_key: str, model: str) -> str:
     """
     client = genai.Client(api_key=google_api_key)
     tools = [Tool(url_context = UrlContext), Tool(google_search = GoogleSearch)]
-    max_retries = 2
+    max_retries = 1
     retry_count = 0
 
     while retry_count <= max_retries:
@@ -33,7 +33,7 @@ def verify_events_details(prompt: str, google_api_key: str, model: str) -> str:
             
             # Check if response is valid
             if not response:
-                print(f"Error: Empty response from API (Attempt {retry_count + 1}/{max_retries + 1})")
+                print(f"Error: Empty response from API (Attempt {retry_count + 1}/{max_retries +1})")
                 retry_count += 1
                 continue
 

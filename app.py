@@ -71,6 +71,7 @@ def display_events_in_directory(directory: Path):
     
     if not json_files:
         st.warning(f"No JSON files found in `{directory}`.")
+        st.warning(f"It is currently in process of extracting events from the articles. Please check back later.")
         return
     
     # Create a mapping from filename to full path for the selectbox
@@ -78,7 +79,7 @@ def display_events_in_directory(directory: Path):
     
     # --- Sidebar for file selection ---
     with st.sidebar:
-        st.header("Select Event File")
+        st.header(f"Select Event File: {directory.name}")
         selected_file_name = st.selectbox(
             "Choose a file to view:",
             options=list(file_options.keys()),
