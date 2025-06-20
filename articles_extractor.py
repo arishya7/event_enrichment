@@ -117,7 +117,6 @@ def extract_rss_feed(blog_url: str, filename: str):
     last_error = None
     for feed_url in feed_formats:
         try:
-            
             # First try without headers
             try:
                 response = requests.get(feed_url, timeout=10)
@@ -160,6 +159,31 @@ def extract_post_id(guid: str) -> int:
         query_params = parse_qs(parsed.query)
         if 'p' in query_params:
             return int(query_params['p'][0])
+        else:
+            parts = guid.split('/')
+            if parts:
+                last_part = parts[-1]
+                try:
+                    return int(last_part)
+                except ValueError:
+                    return abs(hash(guid)) % (10**9)
+    except Exception:
+        pass
+    return 0  # Return 0 for invalid GUIDs
+
+def extract_post_id_atom(guid: str) -> int:
+    """Extract post ID from Atom format GUID by taking the last element after splitting '/'"""
+    try:
+        # Split by '/' and take the last element
+        parts = guid.split('/')
+        if parts:
+            last_part = parts[-1]
+            # Try to convert to integer, if it fails, use hash of the string
+            try:
+                return int(last_part)
+            except ValueError:
+                # If the last part is not a number, use hash of the full GUID
+                return abs(hash(guid)) % (10**9)  # Ensure it's a positive integer
     except Exception:
         pass
     return 0  # Return 0 for invalid GUIDs
@@ -213,42 +237,102 @@ def parse_rss_file(file_path: str, blog_name: str, meta_db: MetaDatabase) -> Lis
         total_articles = 0
         repeated_articles = 0
         
-        # Find all item elements
-        for item in root.findall('.//item'):
-            total_articles += 1
+        # Detect feed format (RSS vs Atom)
+        # Check if it's an Atom feed by looking at the root element
+        root_tag = root.tag
+        is_atom = (root_tag == '{http://www.w3.org/2005/Atom}feed' or 
+                  root_tag.endswith('}feed') or
+                  'atom' in root_tag.lower())
+        
+        print(f"Feed format detected: {'Atom' if is_atom else 'RSS'}")
+        print(f"Root tag: {root_tag}")
+        
+        if is_atom:
+            # Handle Atom format
+            # Find all entry elements (Atom equivalent of RSS item)
+            entries = root.findall('.//{http://www.w3.org/2005/Atom}entry')
+            print(f"Found {len(entries)} Atom entries")
             
-            # Extract GUID first and get post ID as integer
-            guid = item.findtext('guid', '')
-            post_id = extract_post_id(guid)
-            
-            # Skip if post ID is 0 (invalid) or already exists in database
-            if post_id == 0 or guid_db.contains(post_id):
-                repeated_articles += 1
-                continue
+            for entry in entries:
+                total_articles += 1
                 
-            # Add to new GUIDs list
-            new_guids.append(post_id)
-            
-            # Extract other fields
-            title = clean_html(item.findtext('title', ''))
-            content = clean_html(item.findtext('{http://purl.org/rss/1.0/modules/content/}encoded', ''))
-            author = clean_html(item.findtext('{http://purl.org/dc/elements/1.1/}creator', ''))
-            categories = [clean_html(cat.text) for cat in item.findall('category')]
-            all_text = ET.tostring(item, encoding='unicode')
-            urls = extract_urls(all_text)
+                # Extract ID as GUID (Atom uses 'id' element)
+                guid = entry.findtext('{http://www.w3.org/2005/Atom}id', '')
+                if not guid:
+                    print(f"Warning: No ID found for Atom entry {total_articles}")
+                    continue
+                    
+                post_id = extract_post_id_atom(guid)
+                
+                # Skip if post ID is 0 (invalid) or already exists in database
+                if post_id == 0 or guid_db.contains(post_id):
+                    repeated_articles += 1
+                    continue
+                    
+                # Add to new GUIDs list
+                new_guids.append(post_id)
+                
+                # Extract other fields for Atom
+                title = clean_html(entry.findtext('{http://www.w3.org/2005/Atom}title', ''))
+                content = clean_html(entry.findtext('{http://www.w3.org/2005/Atom}content', ''))
+                author = clean_html(entry.findtext('.//{http://www.w3.org/2005/Atom}name', ''))
+                categories = [clean_html(cat.get('term', '')) for cat in entry.findall('{http://www.w3.org/2005/Atom}category')]
+                all_text = ET.tostring(entry, encoding='unicode')
+                urls = extract_urls(all_text)
 
-            # Create article dictionary
-            article = {
-                'title': title,
-                'author': author,
-                'categories': categories,
-                'content': content,
-                'urls': urls,
-                'guid': guid,
-                'post_id': str(post_id)  # Store as string in output for consistency
-            }
+                # Create article dictionary
+                article = {
+                    'title': title,
+                    'author': author,
+                    'categories': categories,
+                    'content': content,
+                    'urls': urls,
+                    'guid': guid,
+                    'post_id': str(post_id)  # Store as string in output for consistency
+                }
+                
+                articles.append(article)
+        else:
+            # Handle RSS format (existing code)
+            # Find all item elements
+            items = root.findall('.//item')
+            print(f"Found {len(items)} RSS items")
             
-            articles.append(article)
+            for item in items:
+                total_articles += 1
+                
+                # Extract GUID first and get post ID as integer
+                guid = item.findtext('guid', '')
+                post_id = extract_post_id(guid)
+                
+                # Skip if post ID is 0 (invalid) or already exists in database
+                if post_id == 0 or guid_db.contains(post_id):
+                    repeated_articles += 1
+                    continue
+                    
+                # Add to new GUIDs list
+                new_guids.append(post_id)
+                
+                # Extract other fields
+                title = clean_html(item.findtext('title', ''))
+                content = clean_html(item.findtext('{http://purl.org/rss/1.0/modules/content/}encoded', ''))
+                author = clean_html(item.findtext('{http://purl.org/dc/elements/1.1/}creator', ''))
+                categories = [clean_html(cat.text) for cat in item.findall('category')]
+                all_text = ET.tostring(item, encoding='unicode')
+                urls = extract_urls(all_text)
+
+                # Create article dictionary
+                article = {
+                    'title': title,
+                    'author': author,
+                    'categories': categories,
+                    'content': content,
+                    'urls': urls,
+                    'guid': guid,
+                    'post_id': str(post_id)  # Store as string in output for consistency
+                }
+                
+                articles.append(article)
         
         # Update GUID database with new GUIDs
         guid_db.add_many(new_guids)
@@ -330,8 +414,12 @@ def main():
     rss_path = extract_rss_feed(selected_blog['blog_url'], filename)
     
     if not rss_path:
-        print("❌ Failed to extract RSS feed")
-        return
+        print("❌ Failed to extract RSS feed from browser. Checking if feed available under RSS_temp...")
+        rss_path = os.path.join(f'RSS_temp/{filename}')
+        if not os.path.exists(rss_path):
+            print("❌ Failed to find RSS feed in RSS_temp")
+            return
+        print(f"✅ RSS feed found in RSS_temp: {rss_path}")
     print("✅ RSS feed extracted successfully")
     
     # Initialize MetaDatabase

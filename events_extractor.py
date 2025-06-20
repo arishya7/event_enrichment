@@ -87,9 +87,9 @@ def main():
         print("❌ Error: GOOGLE_API_KEY not found.")
         return
 
-    model = input("Enter the model name (default: gemini-2.5-pro-preview-05-06): ").strip()
+    model = input("Enter the model name (default: gemini-2.5-pro): ").strip()
     if not model:
-        model = "gemini-2.5-pro-preview-05-06"
+        model = "gemini-2.5-pro"
 
     # Prompt for article input
     print("\nPaste your article as JSON (or enter a file path to a JSON file):")

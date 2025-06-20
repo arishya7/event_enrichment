@@ -189,7 +189,7 @@ RSS_temp/*
 
 # Ignore all files in metadata directory
 meta_database/*
-meta_database/**/*
 
 events_total/*
-events_total/**/*
+
+events_done/*

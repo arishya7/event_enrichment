@@ -29,8 +29,7 @@ def verify_events_details(prompt: str, google_api_key: str, model: str) -> str:
                     tools=tools,
                     response_modalities=["TEXT"],
                 )
-            )
-            
+            )            
             # Check if response is valid
             if not response:
                 print(f"Error: Empty response from API (Attempt {retry_count + 1}/{max_retries +1})")
@@ -66,7 +65,7 @@ def test_verify_events_details():
     """Test function to verify the functionality of verify_events_details()"""
     load_dotenv()
     google_api_key = os.getenv("GOOGLE_API_KEY")
-    model = "gemini-2.0-flash"
+    model = "gemini-2.5-pro"
     
     # Test case 1: Valid input
     test_input = {

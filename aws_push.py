@@ -16,8 +16,8 @@ def upload_directory(local_path):
     for path in local_path.rglob('*'):
         if path.is_file():
             # Compute the S3 key
-            relative_path = path.relative_to(local_path)
-            s3_key = f"{s3_prefix}/{relative_path.as_posix()}"
+            path_str = str(path).replace("\\","/")
+            s3_key = f"{s3_prefix}/{path_str}"
             print(f"Uploading {path} to s3://{bucket}/{s3_key}")
             s3.upload_file(str(path), bucket, s3_key)
 

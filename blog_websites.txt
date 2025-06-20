@@ -4,3 +4,6 @@ honeykidsasia.com/feed,honeykidsasia
 thesmartlocal.com/feed,thesmartlocal
 thenewageparents.com/feed,thenewageparents
 thehoneycombers.com/singapore/feed,thehoneycombers
+skoopsg.com/feed/,skoopsg
+skoolopedia.com/feed/,skoolopedia
+www.bykido.com/blogs/guides-and-reviews-singapore.atom/,bykido

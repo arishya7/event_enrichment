@@ -17,6 +17,7 @@ def create_timestamp():
 def main():
     # Generate a single timestamp for this run
     run_timestamp = create_timestamp()
+    print(f"Script started at {run_timestamp}")
     
     load_dotenv()
     google_api_key = os.getenv("GOOGLE_API_KEY")
@@ -64,20 +65,29 @@ def main():
     meta_db.current_run["timestamp"] = run_timestamp  # Use the same timestamp throughout
     
 
+    blog_to_skip =[
+        #"honeykidsasia",      #100 articles
+        "sassymamasg",        #100 articles
+        "theasianparent",     #30 articles
+        "thesmartlocal",      #10 articles
+        "thenewageparents",   #10 articles
+        "thehoneycombers",    #10 articles
+        "skoopsg",            #10 articles
+        "skoolopedia",        #10 articles
+        "bykido",             #30 articles
+        ]
     for blog_name, blog_details in blog_dict.items():
-        
-
+        if blog_name in blog_to_skip:
+            print(f"Skipping {blog_name}")
+            continue
         articles = parse_rss_file(blog_details['rss_file_path'], blog_name, meta_db)
         if articles:
-            if blog_name == "honeykidsasia":
-                top_few_articles = articles[25:27]
-            else:
-                top_few_articles = articles[50:52]
+            articles = articles[75:]
             articles_filename = f"{blog_name}_articles.json"
-            article_file_path = save_to_json(top_few_articles, articles_filename)
+            article_file_path = save_to_json(articles, articles_filename)
             blog_dict[blog_name]['article_file_path'] = article_file_path
         elif articles == []:
-            print("No events extracted")
+            print("No articles extracted")
         else:
             print("No new articles found")
     print("\n")
@@ -86,6 +96,7 @@ def main():
     # Extract events from articles as json
     #############################################
     for blog_name, blog_details in blog_dict.items():
+
         if 'article_file_path' not in blog_details or blog_details['article_file_path'] is None:
             print(f"No new articles found for {blog_name}")
             continue
@@ -106,7 +117,7 @@ def main():
         for i, article_dict in enumerate(articles_ls, 1):
             print(f"\nProcessing article {i}/{len(articles_ls)} from {blog_name}: {article_dict['guid']}")
             
-            events_ls = extract_events(article_dict, google_api_key, "gemini-2.5-pro-preview-06-05")
+            events_ls = extract_events(article_dict, google_api_key, "gemini-2.5-pro")
 
             if events_ls:
                 
@@ -157,6 +168,7 @@ def main():
                     continue
             else:
                 print("-"*5+" No events found in article "+"-"*5)
+            print(f"***** Current event count: {len(results_ls)} *****")
         if results_ls:
             print(f"\nTotal events found: {len(results_ls)}")
             output_file = timestamp_dir / f"{blog_name}_events.json"

@@ -8,7 +8,7 @@ It SHOULD NOT be
 - generic activities (e.g. visiting to the park for playground)
 - About LGBTQ related
 
-If the article mentions events under a particular event group, returns just the event group. (For instance, a fair that consists multiple activities, return the output just the fair, and not the multiple activities.)
+If the article mentions multiple events under a particular event group, returns just the event group. (For instance, a fair that consists multiple activities, return the output just the fair, and not the multiple activities.)
 
 For each event identified, follow the task below:
     Go to the article website itself. Extract all the information below that is needed.
