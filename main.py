@@ -59,22 +59,23 @@ def main():
     
     
     ##############################################
-    # Extract articles from RSS feeds as json
+    # Extract articles from RSS feeds as json 
     ##############################################
     meta_db = MetaDatabase()
     meta_db.current_run["timestamp"] = run_timestamp  # Use the same timestamp throughout
     
 
     blog_to_skip =[
-        #"honeykidsasia",      #100 articles
-        "sassymamasg",        #100 articles
-        "theasianparent",     #30 articles
-        "thesmartlocal",      #10 articles
-        "thenewageparents",   #10 articles
-        "thehoneycombers",    #10 articles
-        "skoopsg",            #10 articles
-        "skoolopedia",        #10 articles
-        "bykido",             #30 articles
+        # "bykido",             #30 articles
+        # "honeykidsasia",      #100 articles
+        # "sassymamasg",        #100 articles
+        # "skoolopedia",        #10 articles
+        # "skoopsg",            #10 articles
+        # "theasianparent",     #20 articles
+        # "thehoneycombers",    #10 articles
+        # "thenewageparents",   #10 articles
+        # "thesmartlocal",      #10 articles
+
         ]
     for blog_name, blog_details in blog_dict.items():
         if blog_name in blog_to_skip:
@@ -82,7 +83,7 @@ def main():
             continue
         articles = parse_rss_file(blog_details['rss_file_path'], blog_name, meta_db)
         if articles:
-            articles = articles[75:]
+            articles = articles
             articles_filename = f"{blog_name}_articles.json"
             article_file_path = save_to_json(articles, articles_filename)
             blog_dict[blog_name]['article_file_path'] = article_file_path
@@ -117,7 +118,7 @@ def main():
         for i, article_dict in enumerate(articles_ls, 1):
             print(f"\nProcessing article {i}/{len(articles_ls)} from {blog_name}: {article_dict['guid']}")
             
-            events_ls = extract_events(article_dict, google_api_key, "gemini-2.5-pro")
+            events_ls = extract_events(article_dict, google_api_key, "gemini-2.5-flash")
 
             if events_ls:
                 

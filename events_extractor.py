@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from pathlib import Path
 import re
 import json
+from timeout_utils import api_call_with_timeout, TimeoutError
 
 # Import AddressExtractor and GoogleCustomSearchAPI
 from address_extractor import *
@@ -49,15 +50,23 @@ def extract_events(article_dict: dict, google_api_key: str, model:str) -> list:
     # Possibly build safety settings here
     #####################################
     max_attempts = 2
+    timeout_seconds = 300  # 5 minutes timeout
+    
     for attempt in range(max_attempts):
         try:
             details = verify_events_details(json.dumps(article_dict), google_api_key, model)
             prompt = json.dumps(details)
-            response = client.models.generate_content(
+            
+            # Make API call with timeout
+            response = api_call_with_timeout(
+                client=client,
                 model=model,
                 contents=prompt,
-                config=generate_config
+                config=generate_config,
+                timeout_seconds=timeout_seconds
             )
+            
+            print(f"######### Token used (events_extractor): {response.usage_metadata.total_token_count} #########")
             if response.text and response.text !="[]":
                 return json.loads(clean_text(response.text))
             elif response.text == "[]":
@@ -67,6 +76,13 @@ def extract_events(article_dict: dict, google_api_key: str, model:str) -> list:
                 print("Response.text does not exist")
             return None # Successful but empty response
 
+        except TimeoutError as e:
+            print(f"⚠️  {str(e)} (Attempt {attempt + 1}/{max_attempts})")
+            if attempt < max_attempts - 1:
+                print("Retrying...")
+            else:
+                print("Max retries reached. Failed to generate content.")
+            return None
         except Exception as e:
             print(f"Error on attempt {attempt + 1}/{max_attempts}: {e}")
             if attempt < max_attempts - 1:
@@ -87,9 +103,9 @@ def main():
         print("❌ Error: GOOGLE_API_KEY not found.")
         return
 
-    model = input("Enter the model name (default: gemini-2.5-pro): ").strip()
+    model = input("Enter the model name (default: gemini-2.5-flash): ").strip()
     if not model:
-        model = "gemini-2.5-pro"
+        model = "gemini-2.5-flash"
 
     # Prompt for article input
     print("\nPaste your article as JSON (or enter a file path to a JSON file):")

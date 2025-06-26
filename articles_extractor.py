@@ -243,9 +243,7 @@ def parse_rss_file(file_path: str, blog_name: str, meta_db: MetaDatabase) -> Lis
         is_atom = (root_tag == '{http://www.w3.org/2005/Atom}feed' or 
                   root_tag.endswith('}feed') or
                   'atom' in root_tag.lower())
-        
-        print(f"Feed format detected: {'Atom' if is_atom else 'RSS'}")
-        print(f"Root tag: {root_tag}")
+        print(f"{blog_name} - Feed format detected: {'Atom' if is_atom else 'RSS'}")
         
         if is_atom:
             # Handle Atom format
@@ -361,7 +359,7 @@ def save_to_json(articles: List[Dict], output_file: str):
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(articles, f, indent=2, ensure_ascii=False)
     
-    print(f"Saved {len(articles)} articles to {output_path}")
+    print(f"========== Saved {len(articles)} articles to {output_path} ==========")
     return output_path
 
 def main():

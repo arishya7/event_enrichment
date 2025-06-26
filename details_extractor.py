@@ -5,6 +5,7 @@ from google.genai.types import Tool, GenerateContentConfig, GoogleSearch, UrlCon
 import json
 from dotenv import load_dotenv
 from pathlib import Path
+from timeout_utils import api_call_with_timeout, TimeoutError
 
 
 def verify_events_details(prompt: str, google_api_key: str, model: str) -> str:
@@ -17,19 +18,24 @@ def verify_events_details(prompt: str, google_api_key: str, model: str) -> str:
     tools = [Tool(url_context = UrlContext), Tool(google_search = GoogleSearch)]
     max_retries = 1
     retry_count = 0
+    timeout_seconds = 300  # 5 minutes timeout
 
     while retry_count <= max_retries:
         try:
-            # Make API call
-            response = client.models.generate_content(
+            # Make API call with timeout
+            response = api_call_with_timeout(
+                client=client,
                 model=model,
                 contents=prompt,
                 config=GenerateContentConfig(
                     system_instruction=open("system_instruction_1.txt", "r", encoding="utf-8").read(),
                     tools=tools,
                     response_modalities=["TEXT"],
-                )
-            )            
+                ),
+                timeout_seconds=timeout_seconds
+            )
+            
+            print(f"######### Token used (details_extractor): {response.usage_metadata.total_token_count} #########")
             # Check if response is valid
             if not response:
                 print(f"Error: Empty response from API (Attempt {retry_count + 1}/{max_retries +1})")
@@ -50,6 +56,13 @@ def verify_events_details(prompt: str, google_api_key: str, model: str) -> str:
                 retry_count += 1
                 continue
 
+        except TimeoutError as e:
+            print(f"⚠️  {str(e)} (Attempt {retry_count + 1}/{max_retries + 1})")
+            retry_count += 1
+            if retry_count <= max_retries:
+                print(f"Retrying... (Attempt {retry_count + 1}/{max_retries + 1})")
+                continue
+            return ""
         except Exception as e:
             print(f"ERROR in verify_events_details: {str(e)}")
             retry_count += 1
@@ -65,7 +78,7 @@ def test_verify_events_details():
     """Test function to verify the functionality of verify_events_details()"""
     load_dotenv()
     google_api_key = os.getenv("GOOGLE_API_KEY")
-    model = "gemini-2.5-pro"
+    model = "gemini-2.5-flash"
     
     # Test case 1: Valid input
     test_input = {
@@ -205,7 +218,7 @@ def main():
     # Process selected articles
     print(f"\n🔄 Processing {len(selected_articles)} article(s)...\n")
     
-    model = "gemini-2.0-flash"
+    model = "gemini-2.5-pro"
     for i, article in enumerate(selected_articles, 1):
         print(f"{'='*80}")
         print(f"ARTICLE {i}/{len(selected_articles)}")

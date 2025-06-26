@@ -9,13 +9,11 @@ s3 = boto3.client(
 )
 bucket = os.getenv('S3_BUCKET_NAME')
 s3_prefix = os.getenv('S3_SUBFOLDER')
-print(bucket)
-print(s3_prefix)
+
 def upload_directory(local_path):
     s3_prefix = 's3fs-private'
     for path in local_path.rglob('*'):
         if path.is_file():
-            # Compute the S3 key
             path_str = str(path).replace("\\","/")
             s3_key = f"{s3_prefix}/{path_str}"
             print(f"Uploading {path} to s3://{bucket}/{s3_key}")

@@ -1,9 +1,9 @@
-sassymamasg.com/feed,sassymamasg
-sg.theasianparent.com/feed,theasianparent
-honeykidsasia.com/feed,honeykidsasia
-thesmartlocal.com/feed,thesmartlocal
-thenewageparents.com/feed,thenewageparents
-thehoneycombers.com/singapore/feed,thehoneycombers
-skoopsg.com/feed/,skoopsg
-skoolopedia.com/feed/,skoolopedia
 www.bykido.com/blogs/guides-and-reviews-singapore.atom/,bykido
+honeykidsasia.com/feed,honeykidsasia
+sassymamasg.com/feed,sassymamasg
+skoolopedia.com/feed/,skoolopedia
+skoopsg.com/feed/,skoopsg
+sg.theasianparent.com/feed,theasianparent
+thehoneycombers.com/singapore/feed,thehoneycombers
+thenewageparents.com/feed,thenewageparents
+thesmartlocal.com/feed,thesmartlocal
