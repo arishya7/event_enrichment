@@ -1,187 +1,138 @@
 import streamlit as st
 import json
 from pathlib import Path
-from PIL import Image
-from collections import defaultdict
 
-# Set the title and a nice header for the app
-st.set_page_config(page_title="Event & Article Viewer", layout="wide")
-st.title("🎉 Event & Article Viewer")
+st.set_page_config(page_title="Event JSON & Image Editor", layout="wide")
+st.title("Event JSON & Image Editor")
 
-# --- Functions ---
-def get_subdirectories(directory: str) -> list:
-    """Find all subdirectories in the specified directory."""
-    p = Path(directory)
-    if not p.is_dir():
-        return []
-    return [d for d in p.iterdir() if d.is_dir()]
+# Helper to find all event JSON files
+def find_event_json_files(base_dir):
+    base = Path(base_dir)
+    event_files = []
+    for folder in base.glob("*/"):
+        for json_file in folder.glob("*.json"):
+            event_files.append(json_file)
+    return event_files
 
-def get_json_files(directory: Path) -> list:
-    """Finds all .json files in the specified directory."""
-    if not directory.is_dir():
-        return []
-    return list(directory.glob("*.json"))
+# Helper to get images for an event
+def get_event_images(event_folder, blog_source):
+    images_dir = event_folder / "images" / blog_source
+    if images_dir.exists():
+        return list(images_dir.glob("*"))
+    return []
 
-def load_json_data(file_path: Path) -> list:
-    """Loads and returns the content of a JSON file."""
+# 1. Select event JSON file
+event_json_files = find_event_json_files("data/events_output")
+if not event_json_files:
+    st.warning("No event JSON files found in data/events_output.")
+    st.stop()
+
+selected_file = st.selectbox(
+    "Select an event JSON file to edit:",
+    event_json_files,
+    format_func=lambda p: str(p.relative_to(Path("data/events_output")))
+)
+
+# 2. Load JSON (expecting a list of events)
+try:
+    events = json.loads(Path(selected_file).read_text(encoding="utf-8"))
+    if not isinstance(events, list):
+        st.error("JSON file does not contain a list of events.")
+        st.stop()
+except Exception as e:
+    st.error(f"Failed to load JSON: {e}")
+    st.stop()
+
+# 3. Select event from list
+event_titles = [e.get("title", f"Event {i}") for i, e in enumerate(events)]
+selected_idx = st.selectbox("Select event to edit:", range(len(events)), format_func=lambda i: event_titles[i])
+event = events[selected_idx]
+
+# 4. Edit event JSON
+event_json_str = st.text_area(
+    "Edit selected event JSON (edit and click Save)",
+    value=json.dumps(event, indent=2, ensure_ascii=False),
+    height=350,
+    key=f"event_json_area_{selected_idx}"
+)
+
+save_json = st.button("Save Event JSON")
+if save_json:
     try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            data = json.load(f)
-            # Ensure data is always a list
-            if isinstance(data, dict):
-                return [data]
-            return data
-    except (json.JSONDecodeError, FileNotFoundError):
-        return []
-    
-def clean_text(text: str) -> str:
-    """Clean text for markdown display"""
-    return text.replace("$", "\$").replace("(", "\(").replace(")", "\)").replace("!","\!").replace("#","\#").replace("*","\*")
+        updated_event = json.loads(event_json_str)
+        events[selected_idx] = updated_event
+        Path(selected_file).write_text(json.dumps(events, indent=2, ensure_ascii=False), encoding="utf-8")
+        st.success("Event JSON saved!")
+        event = updated_event
+    except Exception as e:
+        st.error(f"Invalid JSON: {e}")
 
-def display_event_images(event, event_dir):
-    """Display images for an event, combining event directory path with image paths"""
-    images = event.get('images', [])
-    if images:
-        st.markdown(f"**🖼️ Images ({len(images)}):**")
-        
-        # Create a grid of images
-        cols = st.columns(5) # Display up to 5 images per row
-        for idx, img_info in enumerate(images):
-            # Combine event directory with image path
-            relative_path = img_info.get('local_path', '').replace('\\', '/')
-            img_path = Path(relative_path)
-            
-            if img_path.exists():
-                try:
-                    image = Image.open(img_path)
-                    with cols[idx % 5]:
-                        st.image(image, caption=f"Source: {img_info.get('source_credit', 'N/A')}", use_column_width=True)
-                except Exception as e:
-                    with cols[idx % 5]:
-                        st.warning(f"Could not load image: {img_path.name}")
-            else:
-                with cols[idx % 5]:
-                    st.warning(f"Image not found at: {str(img_path)}")
-    else:
-        st.markdown("**🖼️ No images available for this event.**")
-
-def display_events_in_directory(directory: Path):
-    """Display events from JSON files in the given directory"""
-    json_files = get_json_files(directory)
-    
-    if not json_files:
-        st.warning(f"No JSON files found in `{directory}`.")
-        st.warning(f"It is currently in process of extracting events from the articles. Please check back later.")
-        return
-    
-    # Create a mapping from filename to full path for the selectbox
-    file_options = {file.name: file for file in json_files}
-    
-    # --- Sidebar for file selection ---
-    with st.sidebar:
-        st.header(f"Select Event File: {directory.name}")
-        selected_file_name = st.selectbox(
-            "Choose a file to view:",
-            options=list(file_options.keys()),
-            key=f"file_selector_{directory.name}"
-        )
-    
-    # --- Display Content ---
-    if selected_file_name:
-        selected_file_path = file_options[selected_file_name]
-        st.header(f"Viewing: `{selected_file_name}`")
-        
-        event_data = load_json_data(selected_file_path)
-        
-        if not event_data:
-            st.error("Could not load or parse the selected JSON file. It might be empty or malformed.")
-        else:
-            # Create a search bar
-            search_query = st.text_input(
-                "Search for events by title, description, or venue:", 
-                "", 
-                key=f"search_{directory.name}"
-            )
-            
-            # Filter events based on search query
-            filtered_events = []
-            if search_query:
-                for event in event_data:
-                    # Check title, description, and venue
-                    title = event.get('title', '').lower()
-                    description = event.get('description', '').lower()
-                    venue = event.get('venue_name', '').lower()
-                    
-                    if (search_query.lower() in title or 
-                        search_query.lower() in description or
-                        search_query.lower() in venue):
-                        filtered_events.append(event)
-            else:
-                filtered_events = event_data
-                
-            st.write(f"Displaying **{len(filtered_events)}** of **{len(event_data)}** events.")
-
-            # Display events in expanders
-            for event in filtered_events:
-                with st.expander(f"**{event.get('title')}**"):
-                    st.write("-"*100)
-                    st.write(f"Blurb: {event.get('blurb', 'N/A')}")
-                    st.write("-"*100)
-                    # --- Main Details in Columns ---
-                    col1, col2 = st.columns(2)
-                    
-                    with col1:
-                        st.write(f"**Date & Time:** {clean_text(event.get('datetime_display', 'N/A'))}")
-                        st.write(f"**Venue:** {clean_text(event['venue_name'] if event.get('venue_name') else 'N/A')}")
-                        st.write(f"**Address:** {clean_text(event['full_address'] if event.get('full_address') else 'N/A')}")
-                    
-                    with col2:
-                        st.write(f"**Price:** {clean_text(event.get('price_display', 'N/A'))}")
-                        st.write(f"**Age Group:** {clean_text(event.get('age_group_display', 'N/A'))}")
-                        st.write(f"**URL:** {clean_text(event.get('url', 'N/A'))}")
-                
-                    st.markdown(f"**Description:**")
-                    st.info(clean_text(event.get('description', 'N/A')))
-                    
-                    # --- Categories ---
-                    st.markdown("-"*100)
-                    categories = event.get('categories', [])
-                    if categories:
-                        st.markdown("**Categories:**")
-                        st.write(", ".join(categories))
-                
-                    # Identify fields that are not already explicitly displayed
-                    handled_fields = {
-                        'title', 'venue_name', 'datetime_display', 'full_address', 
-                        'price_display', 'age_group_display', 'url', 
-                        'description', 'categories', 'images', 'blurb'
-                    }
-                    additional_details = {k: v for k, v in event.items() if k not in handled_fields and v}
-                    st.markdown("-"*100)
-                    if additional_details:
-                        st.markdown("**Additional Details:**")
-                        cols = st.columns(3)
-                        for idx, (key, value) in enumerate(additional_details.items()):
-                            with cols[idx % 3]:
-                                st.markdown(f"**{key.replace('_', ' ').title()}:**")
-                                st.caption(str(value))
-                
-                    # --- Images ---
-                    st.markdown("---")
-                    display_event_images(event, directory)
-
-# --- Main App ---
-# Get all subdirectories in events_output
-EVENT_DIR = Path("events_output")
-subdirs = get_subdirectories("events_output")
-
-if not subdirs:
-    st.warning("No subdirectories found in events_output.")
+# 5. Image management
+st.subheader("Event Images")
+images = event.get("images", [])
+if not images:
+    st.info("No images found for this event.")
 else:
-    # Create tabs dynamically based on subdirectories
-    tabs = st.tabs([subdir.name for subdir in subdirs])
-    
-    # Display content for each tab
-    for tab, subdir in zip(tabs, subdirs):
-        with tab:
-            display_events_in_directory(subdir) 
+    for idx, img_obj in enumerate(images):
+        local_path = img_obj.get("local_path")
+        filename = img_obj.get("filename", Path(local_path).name if local_path else "")
+        if not local_path:
+            continue
+        img_file = Path(local_path)
+        cols = st.columns([2, 1, 1])
+        with cols[0]:
+            if img_file.exists():
+                st.image(str(img_file), caption=filename, width=250)
+                st.caption(f"File name: {filename}")
+            else:
+                st.warning(f"Image not found: {img_file}")
+        with cols[1]:
+            with st.form(f"replace_{img_file}_{idx}"):
+                uploaded = st.file_uploader(f"Replace {filename}", type=["jpg","jpeg","png","webp"], key=f"uploader_{img_file}_{idx}")
+                submitted = st.form_submit_button("Replace")
+                if submitted and uploaded:
+                    new_name = uploaded.name
+                    new_path = img_file.parent / new_name
+                    new_path.write_bytes(uploaded.getbuffer())
+                    # Update JSON if file name changes
+                    if new_name != img_file.name:
+                        img_obj["local_path"] = str(new_path)
+                        img_obj["filename"] = new_name
+                        if img_file.exists():
+                            img_file.unlink()
+                    # Overwrite if same name, no JSON change needed
+                    Path(selected_file).write_text(json.dumps(events, indent=2, ensure_ascii=False), encoding="utf-8")
+                    st.success(f"Replaced {filename} with {new_name}")
+                    st.experimental_rerun()
+        with cols[2]:
+            if st.button(f"Delete"):
+                # Remove file
+                if img_file.exists():
+                    img_file.unlink()
+                # Remove from images array
+                event["images"].pop(idx)
+                events[selected_idx] = event
+                Path(selected_file).write_text(json.dumps(events, indent=2, ensure_ascii=False), encoding="utf-8")
+                st.success(f"Deleted {filename}")
+                st.experimental_rerun()
+    st.markdown("---")
+    st.write("Upload a new image:")
+    new_img = st.file_uploader("New image", type=["jpg","jpeg","png","webp"], key=f"new_image_{selected_idx}")
+    if new_img:
+        # Save to same folder as first image, or to a default
+        if images and images[0].get("local_path"):
+            save_dir = Path("data/events_output") / Path(images[0]["local_path"]).parent
+        else:
+            save_dir = Path("data/events_output")
+        save_dir.mkdir(parents=True, exist_ok=True)
+        save_path = save_dir / new_img.name
+        save_path.write_bytes(new_img.getbuffer())
+        # Add to event's images array
+        event.setdefault("images", []).append({
+            "local_path": str(save_path),
+            "filename": new_img.name
+        })
+        events[selected_idx] = event
+        Path(selected_file).write_text(json.dumps(events, indent=2, ensure_ascii=False), encoding="utf-8")
+        st.success(f"Uploaded and added {new_img.name} to event JSON!")
+        st.experimental_rerun() 

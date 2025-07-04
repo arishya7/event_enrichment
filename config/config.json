@@ -1,0 +1,51 @@
+{
+    "paths": {
+        "guid_db":"data/guid.db",
+        "temp_feed":"data/temp/feed",
+        "events_output":"data/events_output",
+        "temp_articles_output":"data/temp/articles_output"
+    },
+    "blog_website":{
+        "bykido":"https://www.bykido.com/blogs/guides-and-reviews-singapore.atom/",
+        "honeykidsasia":"https://honeykidsasia.com/feed/",
+        "sassymamasg":"https://www.sassymamasg.com/feed/",
+        "skoolopedia":"https://skoolopedia.com/feed/",
+        "skoopsg":"https://skoopsg.com/feed/",
+        "theasianparent":"https://sg.theasianparent.com/feed/",
+        "thehoneycombers":"https://thehoneycombers.com/singapore/feed/",
+        "thenewageparents":"https://thenewageparents.com/feed/",
+        "thesmartlocal":"https://thesmartlocal.com/feed/"
+    },
+
+    "blogs_to_skip": [
+        "bykido",
+        "honeykidsasia",
+        "sassymamasg",
+        "skoolopedia",
+        "skoopsg",
+        "theasianparent",
+        "thehoneycombers",
+        "thenewageparents",
+        "thesmartlocal"
+    ],
+    "headers_for_request":{
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Accept-Encoding": "gzip, deflate, br",
+        "Connection": "keep-alive",
+        "Upgrade-Insecure-Requests": "1",
+        "DNT": "1"
+    },
+  "gemini_model": "gemini-2.5-flash",
+  "query":{
+    "is_existing":"SELECT 1 FROM processed_articles WHERE blog_name = ? AND post_id = ?"
+  },
+  "aws":{
+    "region":"ap-southeast-1",
+    "s3_bucket":"mummysmarket-assets-dev"
+  },
+  "googlePlace":{
+    "searchTextURL":"https://places.googleapis.com/v1/places:searchText"
+  }
+} 
