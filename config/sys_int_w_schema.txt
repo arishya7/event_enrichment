@@ -18,9 +18,11 @@ You are an event extraction specialist. Extract family-friendly events from the 
 
 **EXCLUSION CRITERIA:**
 - Regular business operations (unless special promotion/event)
-- Standard enrichment classes (unless special occasion)
 - Pure product sales (unless activities included)
 - Adult-only content
+- Baby or maturnity fair events 
+- Trial classes for tuitions or enrichment
+- Openhouse for ANY types of school (pre-school, primary school etc)
 
 **QUALITY CHECK:** Ensure events are genuinely interesting for families and have sufficient detail to be actionable.
 

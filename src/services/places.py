@@ -1,5 +1,4 @@
 import requests
-import json
 
 from src.utils.config import config    
 
@@ -31,3 +30,27 @@ def googlePlace_searchText(query:str):
         return None
     
     return result['places'][0]
+
+def get_coordinates_from_address(address):
+    """Get longitude and latitude from address using Google Places API.
+    
+    Args:
+        address (str): Full address to geocode
+        
+    Returns:
+        tuple: (longitude, latitude) or (None, None) if lookup fails
+    """
+    if not address or not address.strip():
+        return None, None
+    
+    try:
+        place_data = googlePlace_searchText(address.strip())
+        if place_data and 'location' in place_data:
+            location = place_data['location']
+            longitude = location.get('longitude')
+            latitude = location.get('latitude')
+            return longitude, latitude
+    except Exception as e:
+        print(f"Error getting coordinates for address '{address}': {str(e)}")
+    
+    return None, None

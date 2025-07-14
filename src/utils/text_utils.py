@@ -1,6 +1,5 @@
-from pathlib import Path
 from urllib.parse import urlparse, parse_qs
-from typing import List, Dict
+from typing import List
 from html import unescape
 import re
 import json

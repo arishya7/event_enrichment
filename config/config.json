@@ -37,7 +37,7 @@
         "Upgrade-Insecure-Requests": "1",
         "DNT": "1"
     },
-  "gemini_model": "gemini-2.5-flash",
+  "gemini_model": "gemini-2.5-pro",
   "query":{
     "is_existing":"SELECT 1 FROM processed_articles WHERE blog_name = ? AND post_id = ?"
   },

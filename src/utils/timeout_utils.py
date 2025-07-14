@@ -1,7 +1,5 @@
 import threading
 import time
-import platform
-import signal
 from functools import wraps
 
 class TimeoutError(Exception):

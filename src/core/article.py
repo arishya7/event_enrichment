@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict
-from datetime import datetime
+from typing import List, Optional
 import xml.etree.ElementTree as ET
 from google.genai.types import Tool, GenerateContentConfig, GoogleSearch, UrlContext
 import json
@@ -8,9 +7,9 @@ from pathlib import Path
 
 from src.utils.text_utils import *
 from src.utils.config import config
-from src.core.database import execute_query
 from src.core import Event
 from src.services.generative_language import *
+from src.utils.output_formatter import formatter
 
 @dataclass
 class Article:
@@ -105,7 +104,7 @@ class Article:
             )
             
         except Exception as e:
-            print(f"[ERROR][Article.from_entry] Failed to parse entry for {blog_name}: {str(e)}")
+            formatter.print_error(f"Failed to parse entry for {blog_name}: {str(e)}")
             return None
 
     def extract_events(self) -> List[Event]:
@@ -156,7 +155,7 @@ class Article:
             # Parse and validate events
             is_valid, error_msg, events_dict_ls = is_valid_json(clean_text(schema_response.text))
             if not is_valid:
-                print(f"[ERROR][Article.extract_events] Invalid JSON response: {error_msg}")
+                formatter.print_error(f"Invalid JSON response: {error_msg}")
                 return []
             
             events = []
@@ -165,13 +164,13 @@ class Article:
                     event = Event.from_dict(event_dict)
                     events.append(event)
                 except Exception as e:
-                    print(f"[ERROR][Article.extract_events] Failed to parse event: {str(e)}")
+                    formatter.print_error(f"Failed to parse event: {str(e)}")
                     continue
                     
             return events
             
         except Exception as e:
-            print(f"[ERROR][Article.extract_events] Failed to extract events from article {self.guid}: {str(e)}")
+            formatter.print_error(f"Failed to extract events from article {self.guid}: {str(e)}")
             return []
         
 
@@ -194,14 +193,14 @@ class Article:
         """
         try:
             # Get path to the blog-specific events file
-            blog_events_filepath = Path(config.paths.events_output) / self.timestamp / f"{self.blog}.json"
+            blog_events_file_path = Path(config.paths.events_output) / self.timestamp / f"{self.blog}.json"
             
-            if not blog_events_filepath.exists():
-                print(f"[ERROR][Article.update_events] Events file not found for blog {self.blog}")
+            if not blog_events_file_path.exists():
+                formatter.print_error(f"Events file not found for blog {self.blog}")
                 return
             
             # Read the edited events
-            with open(blog_events_filepath, 'r', encoding='utf-8') as f:
+            with open(blog_events_file_path, 'r', encoding='utf-8') as f:
                 blog_events = json.load(f)
             
             # Find events that belong to this article by matching guid
@@ -212,12 +211,12 @@ class Article:
                         event_obj = Event.from_dict(event_dict)
                         updated_events.append(event_obj)
                     except Exception as e:
-                        print(f"[ERROR][Article.update_events] Failed to parse updated event: {str(e)}")
+                        formatter.print_error(f"Failed to parse updated event: {str(e)}")
                         continue
             
             # Update the article's events
             self.events = updated_events
             
         except Exception as e:
-            print(f"[ERROR][Article.update_events] Failed to update events for article {self.guid}: {str(e)}")
+            formatter.print_error(f"Failed to update events for article {self.guid}: {str(e)}")
             raise

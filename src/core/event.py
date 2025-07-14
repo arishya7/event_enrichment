@@ -1,14 +1,15 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Tuple
+from typing import List, Optional, Dict
 from datetime import datetime
 from pathlib import Path
 import shutil
-import os
+import re
 
 from src.core import *
-from src.services.custom_search import *
+from src.services.custom_search import search_images, search_valid_url
 from src.services.places import *
 from src.utils.file_utils import *
+from src.utils.url_utils import *
 from src.utils.config import config
 
 @dataclass
@@ -67,6 +68,20 @@ class Event:
     latitude: float = 0.0
     longitude: float = 0.0
     images: List[Dict[str, str]] = field(default_factory=list)
+
+    def __post_init__(self):
+        """Validate and fix URL after Event object initialization."""
+        # Check if current URL is valid
+        if not (self.url and self.url.strip()):            
+            # Search for a valid replacement URL
+            new_url = search_valid_url(
+                event_title=self.title,
+                organiser=self.organiser,
+                venue_name=self.venue_name
+            )
+            
+            if new_url:
+                self.url = new_url
 
     @classmethod
     def from_dict(cls, event_dict: Dict[str, str]) -> 'Event':
@@ -183,28 +198,30 @@ class Event:
 
         return downloaded_images
 
+
+
 if __name__ == "__main__":
     print("\n=== Testing Event Class ===\n")
     
     # Create a test event
     test_event = Event(
-        title="Test Family Fun Day",
-        blurb="A fun day for the whole family",
-        description="Join us for a day of activities, games, and food!",
-        guid="test123",
+        title="Forest Adventure Club Outdoor Holiday Camps",
+        blurb="",
+        description="",
+        guid="",
         activity_or_event="event",
-        url="https://example.com/event",
-        price_display="$10",
-        price=10.0,
+        url="https://www.forestadventureclub.com",
+        price_display="",
+        price=0.0,
         is_free=False,
-        organiser="Fun Events Co",
-        age_group_display="All ages",
+        organiser="Forest Adventure Club",
+        age_group_display="",
         min_age=0,
         max_age=99,
-        datetime_display="1 July 2025, 10am - 5pm",
-        start_datetime="2025-07-01T10:00:00",
-        end_datetime="2025-07-01T17:00:00",
-        venue_name="Gardens by the Bay",
+        datetime_display="",
+        start_datetime="",
+        end_datetime="",
+        venue_name="ple locations",
         categories=["Family", "Activities"],
         scraped_on=datetime.now().isoformat()
     )

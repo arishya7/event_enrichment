@@ -8,6 +8,9 @@ It SHOULD NOT be
 - regular places to visit (e.g. tourism attraction or cafe spots) 
 - generic activities (e.g. visiting to the park for playground)
 - About LGBTQ related
+- Baby or maturnity related fair events (MUST NOT INCLUDE)
+- Trial classes for tuitions or enrichment
+- Openhouse for ANY types of school (pre-school, primary school etc)
 
 Valid events include:
 - Festivals and fairs
@@ -28,7 +31,7 @@ For events without age limits, use "all ages" and set min_age to 0 and max_age t
 ONLY IF valid events are found, include the following article metadata and event details:
 
 Article title: [Article Title from source]
-GUID: [Full URL from GUID. Copy exactly as provided]
+GUID: [Full URL from GUID. Copy exactly as provided. DO NOT ADD ON NUMBERS OR WORDS TO THE URL]
 post_id: [the id provided from GUID url parameter]
 article_website: [Full URL from article website]
 Categories: [Categories from source]

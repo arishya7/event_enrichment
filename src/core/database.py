@@ -1,6 +1,6 @@
 import sqlite3
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Tuple
 
 from src.utils.config import config
 from src.core import *

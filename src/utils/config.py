@@ -2,7 +2,6 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Dict, Any
-from google.genai.types import Tool, GenerateContentConfig, GoogleSearch, UrlContext
 from dotenv import load_dotenv
 import os
 
