@@ -4,6 +4,8 @@ import re
 from pathlib import Path
 from datetime import datetime, date, time
 
+st.set_page_config(page_title="Event JSON & Image Editor", layout="wide")
+
 # Import Google Places functionality
 try:
     from src.services.places import get_coordinates_from_address
@@ -92,7 +94,6 @@ def combine_to_iso_datetime(date_obj, time_obj):
 
 
 
-st.set_page_config(page_title="Event JSON & Image Editor", layout="wide")
 st.title("Event JSON & Image Editor")
 
 # Add aspect ratio controls
@@ -407,19 +408,19 @@ for page_event_idx, event in enumerate(current_page_events):
         with col1:
             form_data['title'] = st.text_input(
                 'title',
-                value=event_without_images['title'],
+                value=event_without_images.get('title', ''),
                 key=f'form_title_{event_idx}'
             )
         with col2:
             form_data['organiser']=st.text_input(
                 'organiser',
-                value = event_without_images['organiser'],
+                value = event_without_images.get('organiser', ''),
                 key=f'form_organiser_{event_idx}'
             )
         with col3:
             form_data['blurb'] = st.text_input(
                 'blurb',
-                value=event_without_images['blurb'],
+                value=event_without_images.get('blurb', ''),
                 key=f'form_blurb_{event_idx}'
             )
 
@@ -432,7 +433,7 @@ for page_event_idx, event in enumerate(current_page_events):
         with col2:
             form_data['description'] = st.text_area(
                 'description',
-                value = str(event_without_images['description']),
+                value = str(event_without_images.get('description', '')),
                 height=120,
                 key=f'form_description_{event_idx}',
                 label_visibility="collapsed"
@@ -442,7 +443,7 @@ for page_event_idx, event in enumerate(current_page_events):
         # Third row : url with clickable link
         col1,col2 = st.columns([1, 17])
         with col1:
-            url_value = str(event_without_images['url'])
+            url_value = str(event_without_images.get('url', ''))
             if url_value.strip():
                 st.markdown(
                     f'<a href="{url_value}" target="_blank" style="font-size: 1em; color: #1a73e8; text-decoration: underline; font-weight: bold;">url🔗</a>',
@@ -461,7 +462,7 @@ for page_event_idx, event in enumerate(current_page_events):
         col1, col2 = st.columns([1,8])
         with col1:
                 options = ACTIVITY_OR_EVENT
-                current_value = event_without_images['activity_or_event'] 
+                current_value = event_without_images.get('activity_or_event', '') 
                 
                 form_data['activity_or_event'] = st.radio(
                     'activity_or_event',
@@ -472,7 +473,7 @@ for page_event_idx, event in enumerate(current_page_events):
                     horizontal=True
                 )
         with col2:
-            current_categories = event_without_images['categories'] 
+            current_categories = event_without_images.get('categories', '') 
             form_data['categories'] = st.multiselect(
                 'categories',
                 options=AVAILABLE_CATEGORIES,
@@ -488,14 +489,14 @@ for page_event_idx, event in enumerate(current_page_events):
         with col1:
             form_data['price'] = st.number_input(
                 'price',
-                value = event_without_images['price'],
+                value = event_without_images.get('price', ''),
                 key=f'form_price_{event_idx}'
             )
         with col2:
             form_data['is_free'] = st.radio(
                 'is_free',
                 options=[True, False],
-                index=0 if event_without_images['is_free'] else 1,
+                index=0 if event_without_images.get('is_free', '') else 1,
                 key=f'form_is_free_{event_idx}',
                 format_func=lambda x: 'Yes' if x else 'No',
                 horizontal=True
@@ -503,7 +504,7 @@ for page_event_idx, event in enumerate(current_page_events):
         with col3:
             form_data['price_display'] = st.text_input(
                 'price_display',
-                value = event_without_images['price_display'],
+                value = event_without_images.get('price_display', ''),
                 key=f'form_price_display_{event_idx}'
             )
         st.markdown("---")
@@ -512,19 +513,19 @@ for page_event_idx, event in enumerate(current_page_events):
         with col1:
             form_data['min_age'] = st.number_input(
                 'min_age',
-                value=float(event_without_images['min_age']),
+                value=float(event_without_images.get('min_age', '')),
                 key=f"form_min_age_{event_idx}"
             )
         with col2:
             form_data['max_age'] = st.number_input(
                 'max_age',
-                value=float(event_without_images['max_age']),
+                value=float(event_without_images.get('max_age', '')),
                 key=f"form_max_age_{event_idx}"
             )
         with col3:
             form_data['age_group_display'] = st.text_input(
                 'age_group_display',
-                value=event_without_images['age_group_display'],
+                value=event_without_images.get('age_group_display', ''),
                 key=f'form_age_group_display_{event_idx}'
             )
 
@@ -533,18 +534,18 @@ for page_event_idx, event in enumerate(current_page_events):
         col1, col2, col3 = st.columns([1,1,5])
         with col1:
             # Parse existing ISO 8601 datetime
-            parsed_date, parsed_time = parse_iso_datetime(event_without_images['start_datetime'])
+            parsed_date, parsed_time = parse_iso_datetime(event_without_images.get('start_datetime', ''))
             
             col1_, col2_ = st.columns([5,4])
             with col1_:
-                selected_date = st.date_input(
+                start_selected_date = st.date_input(
                     "start_datetime",
                     value=parsed_date if parsed_date else date.today(),
                     key=f"form_start_datetime_date_{event_idx}"
                 )
             
             with col2_:
-                selected_time = st.time_input(
+                start_selected_time = st.time_input(
                     "start_time",
                     value=parsed_time if parsed_time else time(9, 0),  # Default to 9:00 AM
                     key=f"form_start_datetime_time_{event_idx}",
@@ -553,47 +554,54 @@ for page_event_idx, event in enumerate(current_page_events):
             
         with col2:
             # Parse existing ISO 8601 datetime
-            parsed_date, parsed_time = parse_iso_datetime(event_without_images['end_datetime'])
+            parsed_end_date, parsed_end_time = parse_iso_datetime(event_without_images.get('end_datetime', ''))
             
             col1_, col2_ = st.columns([5,4])
             with col1_:
-                selected_date = st.date_input(
+                end_selected_date = st.date_input(
                     "end_datetime",
-                    value=parsed_date if parsed_date else date.today(),
+                    value=parsed_end_date if parsed_end_date else date.today(),
                     key=f"form_end_datetime_date_{event_idx}"
                 )
             with col2_:
-                selected_time = st.time_input(
+                end_selected_time = st.time_input(
                     "end_time",
-                    value=parsed_time if parsed_time else time(9, 0),  # Default to 9:00 AM
+                    value=parsed_end_time if parsed_end_time else time(9, 0),  # Default to 9:00 AM
                     key=f"form_end_datetime_time_{event_idx}",
                     label_visibility='hidden'
                 )
-            
-            # Convert back to ISO 8601 format
-            form_data['start_datetime'] = combine_to_iso_datetime(selected_date, selected_time)
         
         with col3:
             form_data['datetime_display'] = st.text_input(
                 'datetime_display',
-                value = event_without_images['datetime_display'],
+                value = event_without_images.get('datetime_display', ''),
                 key=f'form_datetime_display_{event_idx}'
             )
         
         st.markdown("---")
         #eigth row : venue_name,full_address,latitude, longitude
+        latitude = event_without_images.get('latitude', 0.0)
+        longitude = event_without_images.get('longitude', 0.0)
         col1,col2,col3 = st.columns([1,1,7])
         with col1:
-            st.metric("Latitude", f"{event_without_images['latitude']:6f}")
+            st.metric("Latitude", f"{latitude:.6f}")
         with col2:
-            st.metric("Longitude", f"{event_without_images['longitude']:6f}")
+            st.metric("Longitude", f"{longitude:.6f}")
         with col3:
-            form_data['full_address'] = st.text_input(
-                'full_address',
-                value= event_without_images['full_address'],
-                help="Changing this address will automatically update longitude and latitude",
-                key=f"form_full_address_{event_idx}"
-            )
+            col3a, col3b = st.columns([1, 1])
+            with col3a:
+                form_data['venue_name'] = st.text_input(
+                    'venue_name',
+                    value= event_without_images.get('venue_name', ''),
+                    key=f"form_venue_name_{event_idx}"
+                )
+            with col3b:
+                form_data['full_address'] = st.text_input(
+                    'full_address',
+                    value= event_without_images.get('full_address', ''),
+                    help="Changing this address will automatically update longitude and latitude",
+                    key=f"form_full_address_{event_idx}"
+                )
 
 
         for key, value in event_form_display.items():
@@ -653,44 +661,59 @@ for page_event_idx, event in enumerate(current_page_events):
         
         if form_submitted:
             try:
+                # First, capture ALL form values including datetime combinations
+                # Handle datetime fields specially - combine date and time inputs
+                start_date = st.session_state.get(f"form_start_datetime_date_{event_idx}")
+                start_time = st.session_state.get(f"form_start_datetime_time_{event_idx}")
+                end_date = st.session_state.get(f"form_end_datetime_date_{event_idx}")
+                end_time = st.session_state.get(f"form_end_datetime_time_{event_idx}")
+                
+                # Combine datetime fields
+                if start_date and start_time:
+                    form_data['start_datetime'] = combine_to_iso_datetime(start_date, start_time)
+                if end_date and end_time:
+                    form_data['end_datetime'] = combine_to_iso_datetime(end_date, end_time)
+                
                 # Check if full_address has changed and update coordinates
                 new_full_address = form_data.get('full_address', '')
+                latitude = event_without_images.get('latitude', 0.0)
+                longitude = event_without_images.get('longitude', 0.0)
+                coordinates_updated = False
+                
                 if new_full_address != original_full_address and new_full_address.strip():
                     if GOOGLE_PLACES_AVAILABLE:
-                        st.info("🌍 Address changed. Looking up new coordinates...")
-                        new_longitude, new_latitude = get_coordinates_from_address(new_full_address)
-                        
-                        if new_longitude is not None and new_latitude is not None:
-                            form_data['longitude'] = new_longitude
-                            form_data['latitude'] = new_latitude
-                            st.success(f"✅ Updated coordinates: {new_latitude:.6f}, {new_longitude:.6f}")
-                        else:
-                            st.warning("⚠️ Could not find coordinates for the new address. Longitude and latitude will remain unchanged.")
+                        with st.spinner("🌍 Address changed. Looking up new coordinates..."):
+                            new_longitude, new_latitude = get_coordinates_from_address(new_full_address)
+                            if new_longitude is not None and new_latitude is not None:
+                                longitude = new_longitude
+                                latitude = new_latitude
+                                coordinates_updated = True
+                            else:
+                                st.warning("⚠️ Could not find coordinates for the new address. Longitude and latitude will remain unchanged.")
                     else:
                         st.warning("⚠️ Google Places API not available. Cannot update coordinates automatically.")
                 
-                # Process the form data and convert back to appropriate types
+                # Process ALL form data and convert to appropriate types
                 updated_event_data = {}
                 
+                # Set coordinates (either updated or original)
+                updated_event_data['latitude'] = latitude
+                updated_event_data['longitude'] = longitude
+                
+                # Process all other form fields
                 for key, form_value in form_data.items():
                     original_value = event_without_images.get(key)
                     
-                    # Convert form values back to their original types
-                    if isinstance(original_value, bool):
+                    if key in ['latitude', 'longitude']:
+                        # Already handled above
+                        continue
+                    elif isinstance(original_value, bool):
                         updated_event_data[key] = form_value
                     elif isinstance(original_value, (int, float)):
                         updated_event_data[key] = form_value
                     elif key == 'categories':
-                        # Categories from multiselect are already in the correct format (list)
                         updated_event_data[key] = form_value
                     elif key in ['start_datetime', 'end_datetime']:
-                        # ISO datetime fields are already converted to ISO format
-                        updated_event_data[key] = form_value
-                    elif key in ['start_date', 'end_date']:
-                        # Date fields are already converted to ISO format
-                        updated_event_data[key] = form_value
-                    elif key in ['longitude', 'latitude']:
-                        # Coordinate fields are numbers (may have been updated from address lookup)
                         updated_event_data[key] = form_value
                     elif isinstance(original_value, list):
                         try:
@@ -705,23 +728,117 @@ for page_event_idx, event in enumerate(current_page_events):
                             st.error(f"Invalid JSON format for field '{key}'. Please check the syntax.")
                             st.stop()
                     else:
-                        # String or other types
                         updated_event_data[key] = form_value if form_value != "" else None
-                
+
+                # Capture any additional fields from the dynamic form fields (event_form_display)
+                for key in event_form_display.keys():
+                    if key not in updated_event_data:
+                        # Get the form value from session state
+                        session_key = f"form_{key}_{event_idx}"
+                        if session_key in st.session_state:
+                            form_value = st.session_state[session_key]
+                            original_value = event_without_images.get(key)
+                            
+                            if isinstance(original_value, bool):
+                                updated_event_data[key] = form_value
+                            elif isinstance(original_value, (int, float)):
+                                updated_event_data[key] = form_value
+                            elif isinstance(original_value, list):
+                                try:
+                                    updated_event_data[key] = json.loads(form_value) if form_value.strip() else []
+                                except json.JSONDecodeError:
+                                    updated_event_data[key] = []
+                            elif isinstance(original_value, dict):
+                                try:
+                                    updated_event_data[key] = json.loads(form_value) if form_value.strip() else {}
+                                except json.JSONDecodeError:
+                                    updated_event_data[key] = {}
+                            else:
+                                updated_event_data[key] = form_value if form_value != "" else None
                 # Add back the images data
                 updated_event_data["images"] = event.get("images", [])
-                
-                # Update the event in the events list
+
+                # Ensure all expected fields are present in the event data
+                for field in special_fields:
+                    if field not in updated_event_data:
+                        # Set default values based on type
+                        if field in ['price', 'min_age', 'max_age', 'latitude', 'longitude']:
+                            updated_event_data[field] = 0.0
+                        elif field in ['is_free']:
+                            updated_event_data[field] = False
+                        elif field in ['categories']:
+                            updated_event_data[field] = []
+                        elif field in ['description', 'title', 'blurb', 'organiser', 'url', 'price_display', 'age_group_display', 'datetime_display', 'start_datetime', 'end_datetime', 'venue_name', 'full_address']:
+                            updated_event_data[field] = ''
+                        else:
+                            updated_event_data[field] = None
+
+                # Save the updated event data
                 events[event_idx] = updated_event_data
-                
-                # Save to file
                 Path(selected_file).write_text(json.dumps(events, indent=2, ensure_ascii=False), encoding="utf-8")
                 
-                st.success(f"✅ Event {event_idx + 1} data saved successfully!")
+                # Build detailed success message showing what changed
+                changes_made = []
+                
+                # Check each field for changes
+                for key, new_value in updated_event_data.items():
+                    if key == "images":  # Skip images
+                        continue
+                        
+                    original_value = event_without_images.get(key)
+                    
+                    # Compare values (handle different types)
+                    if str(new_value) != str(original_value):
+                        if key == 'latitude' and coordinates_updated:
+                            continue  # Will be handled in coordinates section
+                        elif key == 'longitude' and coordinates_updated:
+                            continue  # Will be handled in coordinates section
+                        else:
+                            # Format the change nicely
+                            field_name = key.replace('_', ' ').title()
+                            if isinstance(new_value, list):
+                                if len(str(new_value)) > 50:
+                                    changes_made.append(f"📝 {field_name}: Updated")
+                                else:
+                                    changes_made.append(f"📝 {field_name}: {new_value}")
+                            elif isinstance(new_value, bool):
+                                changes_made.append(f"📝 {field_name}: {'Yes' if new_value else 'No'}")
+                            elif key in ['price', 'min_age', 'max_age']:
+                                changes_made.append(f"📝 {field_name}: {new_value}")
+                            elif len(str(new_value)) > 50:
+                                changes_made.append(f"📝 {field_name}: Updated")
+                            else:
+                                changes_made.append(f"📝 {field_name}: {new_value}")
+                
+                # Add coordinates update if address changed
+                if coordinates_updated:
+                    changes_made.append(f"🌍 Coordinates: {latitude:.6f}, {longitude:.6f}")
+                
+                # Build the success message
+                if changes_made:
+                    success_message = f"✅ Event {event_idx + 1} updated successfully!\n" + "\n".join(changes_made)
+                else:
+                    success_message = f"✅ Event {event_idx + 1} data refreshed (no changes detected)"
+                
+                st.session_state[f'success_message_{event_idx}'] = success_message
+                
+                # Force immediate UI update by rerunning the app
                 st.rerun()
                 
             except Exception as e:
                 st.error(f"❌ Error saving event data: {str(e)}")
+    
+    # Check for and display any success message from previous save (right after the form)
+    success_key = f'success_message_{event_idx}'
+    
+    if success_key in st.session_state:
+        success_message = st.session_state[success_key]
+        
+        # Display the message
+        st.success(success_message)
+        
+        # Clear after showing
+        del st.session_state[success_key]
     
     # Image management for this event
     images = event.get("images", [])

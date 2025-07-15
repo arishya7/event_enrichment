@@ -2,7 +2,9 @@
   "type": "array",
   "items": {
     "type": "object",
-    "required": ["title", "blurb", "description", "guid", "activity_or_event", "url", "price_display", "price", "is_free", "organiser", "age_group_display", "min_age", "max_age", "datetime_display", "start_datetime", "end_datetime", "venue_name", "categories"],
+    "required": [
+      "title", "organiser", "blurb", "description", "guid", "activity_or_event", "url", "price_display", "price", "is_free", "age_group_display", "min_age", "max_age", "datetime_display", "start_datetime", "end_datetime", "venue_name", "categories"
+    ],
     "properties": {
       "title": {  "type": "string", "minLength": 40, "maxLength": 50, "description": "The title of the event. Do not mention the location or date or time of the event here."},
       "blurb" : { "type": "string", "minLength": 40, "maxLength": 60, "description": "A short description of the event to put on the event card" },
