@@ -181,56 +181,39 @@ class Run:
             print("│")
             print("│ Launching the web event editor...")
             
-            # Launch the Streamlit app using venv_app
-            import subprocess
-            import sys
-            import os
-            
-            # Get the current working directory
-            current_dir = Path.cwd()
-            
-            # Path to the virtual environment activation script
-            if sys.platform == "win32":
-                venv_activate = current_dir / "venv_app" / "Scripts" / "activate.bat"
-                python_exe = current_dir / "venv_app" / "Scripts" / "python.exe"
-            else:
-                venv_activate = current_dir / "venv_app" / "bin" / "activate"
-                python_exe = current_dir / "venv_app" / "bin" / "python"
-            
             try:
-                # Check if virtual environment exists
-                if not python_exe.exists():
-                    print(f"│ ❌ Virtual environment not found at: {python_exe}")
-                    print("│ Please create the virtual environment first using:")
-                    print("│ python -m venv venv_app")
-                    print("│ Then install requirements: pip install -r requirements_app.txt")
-                    input("│ Press Enter to continue without editing...")
+                # Launch the Streamlit app using subprocess
+                import subprocess
+                import sys
+                
+                # Get the current working directory
+                current_dir = Path.cwd()
+                
+                print("│ 🚀 Starting Streamlit app...")
+                
+                # Launch Streamlit with the main_app.py file using venv_app
+                if sys.platform == "win32":
+                    # On Windows, activate venv_app and run streamlit
+                    cmd = f'venv_app\\Scripts\\activate && streamlit run src/ui/main_app.py --server.headless=false'
+                    process = subprocess.Popen(cmd, shell=True, cwd=current_dir)
                 else:
-                    print(f"│ 🚀 Starting Streamlit app with {python_exe}")
-                    
-                    # Launch Streamlit in a subprocess
-                    if sys.platform == "win32":
-                        # On Windows, use cmd to run the command
-                        cmd = f'"{python_exe}" -m streamlit run app.py --server.headless=false'
-                        process = subprocess.Popen(cmd, shell=True, cwd=current_dir)
-                    else:
-                        # On Unix-like systems
-                        cmd = [str(python_exe), "-m", "streamlit", "run", "app.py", "--server.headless=false"]
-                        process = subprocess.Popen(cmd, cwd=current_dir)
-                    
-                    print("│")
-                    input("│ Press Enter when done editing in the browser...")
-                    
-                    # Terminate the Streamlit process
-                    try:
-                        process.terminate()
-                        process.wait(timeout=5)
-                        print("│ ✅ Streamlit app stopped")
-                    except subprocess.TimeoutExpired:
-                        process.kill()
-                        print("│ ⚠️  Streamlit app force-stopped")
-                    except Exception as e:
-                        print(f"│ ⚠️  Error stopping Streamlit: {str(e)}")
+                    # On Unix-like systems, activate venv_app and run streamlit
+                    cmd = ["bash", "-c", "source venv_app/bin/activate && streamlit run src/ui/main_app.py --server.headless=false"]
+                    process = subprocess.Popen(cmd, cwd=current_dir)
+                
+                print("│")
+                input("│ Press Enter when done editing in the browser...")
+                
+                # Terminate the Streamlit process
+                try:
+                    process.terminate()
+                    process.wait(timeout=5)
+                    print("│ ✅ Streamlit app stopped")
+                except subprocess.TimeoutExpired:
+                    process.kill()
+                    print("│ ⚠️  Streamlit app force-stopped")
+                except Exception as e:
+                    print(f"│ ⚠️  Error stopping Streamlit: {str(e)}")
                         
             except Exception as e:
                 print(f"│ ❌ Error launching Streamlit app: {str(e)}")

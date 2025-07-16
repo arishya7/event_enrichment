@@ -68,6 +68,7 @@ class Event:
     latitude: float = 0.0
     longitude: float = 0.0
     images: List[Dict[str, str]] = field(default_factory=list)
+    checked: bool = False
 
     def __post_init__(self):
         """Validate and fix URL after Event object initialization."""
@@ -186,16 +187,13 @@ class Event:
         if not image_urls or not output_dir:
             return []
 
-        # Download images and collect metadata
-        downloaded_images = []
-        for idx, url in enumerate(image_urls,1):
-            # Create unique filename based on event GUID and image index
-            filename_without_ext = f"{re.sub(r'[^a-zA-Z0-9]', '_', self.title)}_{idx}"
-            image_path = output_dir / filename_without_ext
-            result = download_image(url, image_path)
-            if result:
-                downloaded_images+=[result]
-
+        # Create base filename path without extension or index
+        base_filename = f"{re.sub(r'[^a-zA-Z0-9]', '_', self.title)}"
+        base_file_path = output_dir / base_filename
+        
+        # Download all images at once - download_image handles indexing internally
+        downloaded_images = download_image(image_urls, base_file_path)
+        
         return downloaded_images
 
 

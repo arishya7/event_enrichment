@@ -39,6 +39,11 @@
             "Family", "Food", "Holiday", "Special Event"
           ]
         }
+      },
+      "checked": {
+        "type": "boolean",
+        "description": "Whether the event has been checked/reviewed",
+        "default": false
       }
     }
   }

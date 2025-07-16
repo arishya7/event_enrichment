@@ -11,6 +11,7 @@ It SHOULD NOT be
 - Baby or maturnity related fair events (MUST NOT INCLUDE)
 - Trial classes for tuitions or enrichment
 - Openhouse for ANY types of school (pre-school, primary school etc)
+- Courses or consultations for enrolling universities
 
 Valid events include:
 - Festivals and fairs
