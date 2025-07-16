@@ -74,10 +74,10 @@ class Blog:
             formatter.print_level1(f"🌐 Starting Feed Manager with {python_exe}")
             
             if sys.platform == "win32":
-                cmd = f'"{python_exe}" -m streamlit run feed_manager.py --server.headless=false'
+                cmd = f'"{python_exe}" -m streamlit run src/ui/feed_manager.py --server.headless=false'
                 process = subprocess.Popen(cmd, shell=True, cwd=current_dir)
             else:
-                cmd = [str(python_exe), "-m", "streamlit", "run", "feed_manager.py", "--server.headless=false"]
+                cmd = [str(python_exe), "-m", "streamlit", "run", "src/ui/feed_manager.py", "--server.headless=false"]
                 process = subprocess.Popen(cmd, cwd=current_dir)
             
             formatter.print_level1("")

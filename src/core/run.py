@@ -258,20 +258,29 @@ class Run:
                 print(f"   ❌ Error reading file: {str(e)}")
 
         merge_confirm = input("\nDo you want to merge the events now? (Y/N): ").strip().upper()
-        if merge_confirm != 'Y':
+        if merge_confirm.lower() != 'y':
             print("\nMerge operation cancelled.")
             return 
+
+        # Ask user for filename
+        filename = input("\nEnter filename for merged events (without .json extension): ").strip()
+        if not filename:
+            filename = "events"  # Default filename if empty
+        
+        # Add .json extension if not present
+        if not filename.endswith('.json'):
+            filename += '.json'
 
         try:
             total_events = []
             
             # Get the current event index from database
-            curr_idx = execute_query(
+            current_index = execute_query(
                 "SELECT COALESCE(SUM(num_events), 0) as total FROM processed_articles WHERE timestamp != ?", 
                 (self.timestamp,)
             ).fetchone()[0]
 
-            print(f"\nStarting from event index: {curr_idx}")
+            print(f"\nStarting from event index: {current_index}")
             
             for blog_event_file_path in blog_events_file_path_ls:
                 print(f"Reading {blog_event_file_path.name}...")
@@ -281,8 +290,8 @@ class Run:
                         
                         # Update event indices
                         for event in blog_events:
-                            curr_idx += 1
-                            event['id'] = f"{curr_idx:06d}"
+                            current_index += 1
+                            event['id'] = str(current_index)
                         
                         total_events.extend(blog_events)
                 except Exception as e:
@@ -292,7 +301,7 @@ class Run:
             print(f"Total new events merged: {len(total_events)}")
 
             # Save merged events
-            merged_events_file_path = Path('data') / "events.json"
+            merged_events_file_path = Path('data') / filename
             with open(merged_events_file_path, 'w', encoding='utf-8') as f:
                 json.dump(total_events, f, indent=2, ensure_ascii=False)
             
