@@ -56,19 +56,8 @@ class Blog:
             # Get the current working directory
             current_dir = Path.cwd()
             
-            # Path to the virtual environment
-            if sys.platform == "win32":
-                python_exe = current_dir / "venv_app" / "Scripts" / "python.exe"
-            else:
-                python_exe = current_dir / "venv_app" / "bin" / "python"
-            
-            # Check if virtual environment exists
-            if not python_exe.exists():
-                formatter.print_error("Virtual environment not found")
-                formatter.print_level1("Please create the virtual environment first:")
-                formatter.print_level1("python -m venv venv_app")
-                formatter.print_level1("pip install -r requirements_app.txt")
-                return False
+            # Use current Python executable (venv_main)
+            python_exe = sys.executable
             
             # Launch Streamlit feed manager
             formatter.print_level1(f"🌐 Starting Feed Manager with {python_exe}")

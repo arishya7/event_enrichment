@@ -1,6 +1,7 @@
 # Ignore everything in data except data/feed
 /data/archive/
 /data/temp/
+/data/events_output
 events.json
 
 # Virtual environments
