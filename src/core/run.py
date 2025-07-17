@@ -348,7 +348,7 @@ class Run:
 
 if __name__ == "__main__":
     #timestamp = time.strftime("%Y%m%d_%H%M%S")
-    timestamp = "20250709_130810"
+    timestamp = input("what time stamp you wnat?")
     run = Run(timestamp)
     # run.start()
     file_path = run.merge_events()
