@@ -191,14 +191,14 @@ class Run:
                 
                 print("│ 🚀 Starting Streamlit app...")
                 
-                # Launch Streamlit with the main_app.py file using venv_app
+                # Launch Streamlit using current Python environment
                 if sys.platform == "win32":
-                    # On Windows, activate venv_app and run streamlit
-                    cmd = f'venv_app\\Scripts\\activate && streamlit run src/ui/main_app.py --server.headless=false'
+                    # On Windows, use current Python executable
+                    cmd = f'"{sys.executable}" -m streamlit run src/ui/main_app.py --server.headless=false'
                     process = subprocess.Popen(cmd, shell=True, cwd=current_dir)
                 else:
-                    # On Unix-like systems, activate venv_app and run streamlit
-                    cmd = ["bash", "-c", "source venv_app/bin/activate && streamlit run src/ui/main_app.py --server.headless=false"]
+                    # On Unix-like systems, use current Python executable
+                    cmd = [sys.executable, "-m", "streamlit", "run", "src/ui/main_app.py", "--server.headless=false"]
                     process = subprocess.Popen(cmd, cwd=current_dir)
                 
                 print("│")
