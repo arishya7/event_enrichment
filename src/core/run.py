@@ -4,12 +4,12 @@ from pathlib import Path
 import json
 
 from src.utils.config import config
-from src.core import *
+from src.core import Blog
 from src.core.database import *
 from src.utils.file_utils import *
 from src.utils.file_utils import cleanup_temp_folders
 from src.utils.output_formatter import formatter
-from src.services.aws_s3 import upload_directory, upload_file
+from src.services.aws_s3 import S3Uploader
 
 @dataclass
 class Run:
@@ -313,59 +313,37 @@ class Run:
             raise
 
     def upload_to_s3(self, merged_file_path: Optional[Path] = None) -> None:
-        """Upload processed files to AWS S3.
-        
-        Uploads:
-        1. Timestamp directory (JSON files + images) to public S3 bucket
-        2. Merged events file to private S3 bucket (if available)
-        
-        Args:
-            merged_file_path: Path to the merged events file, if merge was successful
-        """
+        """Upload processed files to AWS S3 using S3Uploader service."""
         try:
-            # Check if there are any files to upload
+            uploader = S3Uploader()
             if not self.timestamp_dir.exists() or not any(self.timestamp_dir.iterdir()):
                 formatter.print_warning("No files found to upload to S3")
                 return
-            
-            # Ask for user confirmation
             formatter.print_section("AWS S3 Upload")
             formatter.print_info("Ready to upload files to AWS S3:")
             formatter.print_item(f"📁 Timestamp directory: {self.timestamp_dir}")
             if merged_file_path and merged_file_path.exists():
                 formatter.print_item(f"📄 Merged events file: {merged_file_path.name}")
-            
             upload_confirm = input("| Do you want to upload to S3? (Y/N): ").strip().upper()
             if upload_confirm != 'Y':
                 formatter.print_warning("S3 upload cancelled")
                 return
-            
-            # Upload timestamp directory to public bucket
-            formatter.print_info("Uploading timestamp directory to S3 public bucket...")
             try:
-                # Use events_output_dir as base to get clean S3 paths like: 20250625_103253/images/...
-                upload_directory(self.timestamp_dir, base_dir=self.events_output_dir)
+                uploader.upload_directory(self.timestamp_dir, base_dir=self.events_output_dir)
                 formatter.print_success(f"✅ Successfully uploaded directory: {self.timestamp_dir}")
             except Exception as e:
                 formatter.print_error(f"Failed to upload directory: {str(e)}")
                 raise
-            
-            # Upload merged events file to private bucket (if available)
             if merged_file_path and merged_file_path.exists():
-                formatter.print_info("Uploading merged events file to S3 private bucket...")
                 try:
-                    # Use the file's parent directory as base to strip local directory structure
-                    upload_file(merged_file_path, base_dir=merged_file_path.parent)
+                    uploader.upload_file(merged_file_path, base_dir=merged_file_path.parent)
                     formatter.print_success(f"✅ Successfully uploaded file: {merged_file_path}")
                 except Exception as e:
                     formatter.print_error(f"Failed to upload merged file: {str(e)}")
                     raise
-            
             formatter.print_section_end()
-            
         except Exception as e:
             formatter.print_error(f"S3 upload failed: {str(e)}")
-            # Don't raise the exception to avoid stopping the entire process
             formatter.print_warning("Continuing without S3 upload...")
 
 if __name__ == "__main__":
