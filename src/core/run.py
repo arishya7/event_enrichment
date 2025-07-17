@@ -9,7 +9,7 @@ from src.core.database import *
 from src.utils.file_utils import *
 from src.utils.file_utils import cleanup_temp_folders
 from src.utils.output_formatter import formatter
-from src.services.aws_s3 import S3Uploader
+from src.services.aws_s3 import S3
 
 @dataclass
 class Run:
@@ -313,9 +313,9 @@ class Run:
             raise
 
     def upload_to_s3(self, merged_file_path: Optional[Path] = None) -> None:
-        """Upload processed files to AWS S3 using S3Uploader service."""
+        """Upload processed files to AWS S3 using S3 service."""
         try:
-            uploader = S3Uploader()
+            s3_client = S3()
             if not self.timestamp_dir.exists() or not any(self.timestamp_dir.iterdir()):
                 formatter.print_warning("No files found to upload to S3")
                 return
@@ -329,14 +329,14 @@ class Run:
                 formatter.print_warning("S3 upload cancelled")
                 return
             try:
-                uploader.upload_directory(self.timestamp_dir, base_dir=self.events_output_dir)
+                s3_client.upload_directory(self.timestamp_dir, base_dir=self.events_output_dir)
                 formatter.print_success(f"✅ Successfully uploaded directory: {self.timestamp_dir}")
             except Exception as e:
                 formatter.print_error(f"Failed to upload directory: {str(e)}")
                 raise
             if merged_file_path and merged_file_path.exists():
                 try:
-                    uploader.upload_file(merged_file_path, base_dir=merged_file_path.parent)
+                    s3_client.upload_file(merged_file_path, base_dir=merged_file_path.parent)
                     formatter.print_success(f"✅ Successfully uploaded file: {merged_file_path}")
                 except Exception as e:
                     formatter.print_error(f"Failed to upload merged file: {str(e)}")

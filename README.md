@@ -200,24 +200,16 @@ Where:
 **Examples:**
 ```bash
 # Launch event review interface
-Script/run_functions.bat review 20250715_103130
-Script/run_functions.ps1 review 20250715_103130
-Script/run_functions.sh  review 20250715_103130
+Script/run_functions.bat review YYYYMMDD_HHMMSS
 
 # Merge events into a single file
-Script/run_functions.bat merge 20250715_103130
-Script/run_functions.ps1 merge 20250715_103130
-Script/run_functions.sh  merge 20250715_103130
+Script/run_functions.bat merge YYYYMMDD_HHMMSS
 
 # Upload to AWS S3
-Script/run_functions.bat upload 20250715_103130 --merged-file data/events.json
-Script/run_functions.ps1 upload 20250715_103130 --merged-file data/events.json
-Script/run_functions.sh  upload 20250715_103130 --merged-file data/events.json
+Script/run_functions.bat upload YYYYMMDD_HHMMSS --merged-file data/XXXX.json
 
 # Clean up temporary files
-Script/run_functions.bat cleanup 20250715_103130
-Script/run_functions.ps1 cleanup 20250715_103130
-Script/run_functions.sh  cleanup 20250715_103130
+Script/run_functions.bat cleanup YYYYMMDD_HHMMSS
 ```
 
 ## Directory Structure
