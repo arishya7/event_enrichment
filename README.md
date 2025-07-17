@@ -95,12 +95,12 @@ cd web-scraping-refactor
 ```bash
 # For main processing
 python -m venv venv_main
-source venv_main/bin/activate  # On Windows: venv_main\Scripts\activate
+venv_main/bin/activate  # On Windows: venv_main\Scripts\activate
 pip install -r requirements_main.txt
 
 # For web app
 python -m venv venv_app
-source venv_app/bin/activate   # On Windows: venv_app\Scripts\activate
+venv_app/bin/activate   # On Windows: venv_app\Scripts\activate
 pip install -r requirements_app.txt
 ```
 

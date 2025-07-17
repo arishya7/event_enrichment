@@ -1,7 +1,7 @@
 # Ignore everything in data except data/feed
-/data/*
-!/data/feed/
-!/data/feed/**
+/data/archive/
+/data/temp/
+events.json
 
 # Virtual environments
 venv_main/
