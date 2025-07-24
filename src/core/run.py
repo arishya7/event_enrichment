@@ -30,7 +30,7 @@ class Run:
         self.events_output_dir.mkdir(exist_ok=True)
         self.timestamp_dir.mkdir(exist_ok=True)
         self.image_dir.mkdir(exist_ok=True)
-        self.feed_dir.mkdir(exist_ok=True)
+        self.feed_dir.mkdir(parents=True, exist_ok=True)
         self.articles_output_dir.mkdir(exist_ok=True)
 
     @property
@@ -133,13 +133,6 @@ class Run:
         
         # Record processing attempts in database with final event counts
         formatter.print_section("Recording processed articles to database...")
-        for blog in self.blogs:
-            for article_obj in blog.articles:
-                execute_query(
-                    "INSERT INTO processed_articles (blog_name, post_id, timestamp, num_events) VALUES (?, ?, ?, ?)",
-                    (article_obj.blog, article_obj.post_id, article_obj.timestamp, len(article_obj.events))
-                )
-            formatter.print_item(f"{blog.name}: {len(blog.articles)} articles recorded")
         formatter.print_section_end()
         
         # Proceed with merge process
@@ -151,6 +144,14 @@ class Run:
         # Clean up temporary folders
         cleanup_temp_folders(self.feed_dir, self.articles_output_dir)
 
+        for blog in self.blogs:
+            for article_obj in blog.articles:
+                execute_query(
+                    "INSERT INTO processed_articles (blog_name, post_id, timestamp, num_events) VALUES (?, ?, ?, ?)",
+                    (article_obj.blog, article_obj.post_id, article_obj.timestamp, len(article_obj.events))
+                )
+            formatter.print_item(f"{blog.name}: {len(blog.articles)} articles recorded")
+        
         formatter.print_header("✨ Run completed successfully!")
 
     def handle_events_review(self) -> None:

@@ -70,10 +70,7 @@ class EventManager:
                     longitude = new_longitude
                     latitude = new_latitude
                     coordinates_updated = True
-                else:
-                    print(f"DEBUG: API returned None coordinates")
-            else:
-                print(f"DEBUG: Conditions not met for coordinate update")
+
             
             # Build updated event data
             updated_event_data = self._build_updated_event_data(

@@ -54,7 +54,7 @@ if errorlevel 1 (
 )
 
 echo [INFO] Running function: %FUNCTION% with timestamp: %TIMESTAMP%
-python run_individual_functions.py %FUNCTION% --timestamp %TIMESTAMP% %1 %2 %3 %4 %5 %6 %7 %8 %9
+python Script\run_individual_functions.py %FUNCTION% --timestamp %TIMESTAMP% %1 %2 %3 %4 %5 %6 %7 %8 %9
 
 if errorlevel 1 (
     echo [ERROR] Function %FUNCTION% failed

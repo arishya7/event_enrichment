@@ -6,7 +6,7 @@ import shutil
 import re
 
 from src.core import *
-from src.services.custom_search import search_images, search_valid_url
+from src.services.custom_search import search_images, search_valid_url, validate_url
 from src.services.places import *
 from src.utils.file_utils import *
 from src.utils.url_utils import *
@@ -50,13 +50,15 @@ class Event:
     guid: str
     activity_or_event: str
     url: str
+    price_display_teaser : str
     price_display: str
     price: float
-    is_free: bool
+    is_free: bool = field(init=False)
     organiser: str
     age_group_display: str
     min_age: float
     max_age: float
+    datetime_display_teaser: str
     datetime_display: str
     start_datetime: str
     end_datetime: str
@@ -64,25 +66,28 @@ class Event:
     categories: List[str]
     scraped_on: str
     # Optional fields with defaults
-    full_address: str = ""
-    latitude: float = 0.0
-    longitude: float = 0.0
+    full_address: str = field(default="")
+    latitude: float = field(default=0.0)
+    longitude: float = field(default=0.0)
     images: List[Dict[str, str]] = field(default_factory=list)
-    checked: bool = False
+    checked: bool = field(default=False)
 
     def __post_init__(self):
-        """Validate and fix URL after Event object initialization."""
         # Check if current URL is valid
-        if not (self.url and self.url.strip()):            
-            # Search for a valid replacement URL
+        if not validate_url(self.url):
             new_url = search_valid_url(
                 event_title=self.title,
-                organiser=self.organiser,
-                venue_name=self.venue_name
+                organiser=self.organiser
             )
-            
             if new_url:
                 self.url = new_url
+
+        # Set up is_free variable
+        self.is_free = True if self.price == 0.0 else False
+
+        # Set up price display teaser if it has only paid options
+        if self.price_display_teaser == "From $":
+            self.price_display_teaser += str(int(self.price))
 
     @classmethod
     def from_dict(cls, event_dict: Dict[str, str]) -> 'Event':
@@ -104,14 +109,7 @@ class Event:
             max_age = float(event_dict.get('max_age', 0.0))
             latitude = float(event_dict.get('latitude', 0.0))
             longitude = float(event_dict.get('longitude', 0.0))
-            
-            # Convert string list to actual list if needed
-            categories = event_dict.get('categories', [])
-            if isinstance(categories, str):
-                categories = categories.split(',')
-                
-            # Get images list - no conversion needed since it's already a list of dicts
-            images = event_dict.get('images', [])
+
                 
             return cls(
                 title=event_dict['title'],
@@ -120,23 +118,24 @@ class Event:
                 guid=event_dict['guid'],
                 activity_or_event=event_dict['activity_or_event'],
                 url=event_dict['url'],
+                price_display_teaser=event_dict['price_display_teaser'],
                 price_display=event_dict['price_display'],
                 price=price,
-                is_free=event_dict.get('is_free', False),
                 organiser=event_dict['organiser'],
                 age_group_display=event_dict['age_group_display'],
                 min_age=min_age,
                 max_age=max_age,
+                datetime_display_teaser=event_dict['datetime_display_teaser'],
                 datetime_display=event_dict['datetime_display'],
                 start_datetime=event_dict['start_datetime'],
                 end_datetime=event_dict['end_datetime'],
                 venue_name=event_dict['venue_name'],
-                categories=categories,
+                categories=event_dict.get('categories', []),
                 scraped_on=event_dict.get('scraped_on', datetime.now().isoformat()),
                 full_address=event_dict.get('full_address', ''),
                 latitude=latitude,
                 longitude=longitude,
-                images=images
+                images=event_dict.get('images', [])
             )
         except KeyError as e:
             print(f"[ERROR][Event.from_dict] Missing required field in event data: {str(e)}")
@@ -221,7 +220,7 @@ if __name__ == "__main__":
         end_datetime="",
         venue_name="ple locations",
         categories=["Family", "Activities"],
-        scraped_on=datetime.now().isoformat()
+        scraped_on=datetime.now().isoformat(timespec="seconds")
     )
     
     # Create temp directory for test

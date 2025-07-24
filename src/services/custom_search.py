@@ -2,6 +2,8 @@ import requests
 from typing import Optional, List
 from dotenv import load_dotenv
 import os
+import requests
+
 from urllib.parse import urlparse
 from src.utils.config import config
 load_dotenv()
@@ -12,7 +14,7 @@ EXCLUDE_SITES = "lookaside OR sassymamasg OR honeykidsasia OR thesmartlocal OR t
 
 
 
-def search_valid_url(event_title: str, organiser: str = "", venue_name: str = "") -> Optional[str]:
+def search_valid_url(event_title: str, organiser: str = "") -> Optional[str]:
     """
     Search for a valid URL for an event using Google Custom Search API.
     
@@ -35,8 +37,6 @@ def search_valid_url(event_title: str, organiser: str = "", venue_name: str = ""
     query_parts = [event_title]
     if organiser:
         query_parts.append(organiser)
-    if venue_name:
-        query_parts.append(venue_name)
     
     search_query = " ".join(query_parts)
     
@@ -129,6 +129,22 @@ def search_images(query: str, num_results: int = 10, site_to_search: Optional[st
         return None
     
     return list(found_urls)
+
+def validate_url(url: str) -> Optional[str]:
+    """
+    Check if the given URL does not return a 404 error.
+    Returns the URL if valid (including unreachable), or None if 404.
+    """
+    try:
+        response = requests.head(url, allow_redirects=True, timeout=5)
+        if response.status_code == 405:
+            response = requests.get(url, allow_redirects=True, timeout=5)
+        if response.status_code == 404:
+            return None
+        return url
+    except requests.RequestException:
+        # Treat unreachable as valid (return the URL)
+        return url
 
 def main():
     """Test function for direct script execution."""

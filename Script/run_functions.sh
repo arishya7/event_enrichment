@@ -104,7 +104,7 @@ source venv_main/bin/activate 2>/dev/null || source venv_main/Scripts/activate 2
 }
 
 print_info "Running function: $FUNCTION with timestamp: $TIMESTAMP"
-python run_individual_functions.py $FUNCTION --timestamp $TIMESTAMP "$@"
+python Script/run_individual_functions.py $FUNCTION --timestamp $TIMESTAMP "$@"
 
 # Check exit code
 if [ $? -eq 0 ]; then

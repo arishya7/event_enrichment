@@ -69,7 +69,7 @@ Write-Host "[INFO] Running function: $Function with timestamp: $Timestamp" -Fore
 
 try {
     # Run the Python script
-    python run_individual_functions.py @args
+    python Script\run_individual_functions.py @args
     
     if ($LASTEXITCODE -eq 0) {
         Write-Host "[SUCCESS] Function $Function completed successfully" -ForegroundColor Green

@@ -158,16 +158,16 @@ class Article:
                 formatter.print_error(f"Invalid JSON response: {error_msg}")
                 return []
             
-            events = []
+            events_obj_ls = []
             for event_dict in events_dict_ls:
                 try:
-                    event = Event.from_dict(event_dict)
-                    events.append(event)
+                    event_obj = Event.from_dict(event_dict)
+                    events_obj_ls.append(event_obj)
                 except Exception as e:
                     formatter.print_error(f"Failed to parse event: {str(e)}")
                     continue
                     
-            return events
+            return events_obj_ls
             
         except Exception as e:
             formatter.print_error(f"Failed to extract events from article {self.guid}: {str(e)}")

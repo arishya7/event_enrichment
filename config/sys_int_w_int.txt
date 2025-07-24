@@ -3,15 +3,15 @@ You will be extracting events from the article content provided in the prompt. F
 IMPORTANT: If there are no valid events that meet the criteria below, return ONLY "[]" without any article metadata or other text.
 
 Events must be activities that families can do. 
+
 It SHOULD NOT be 
-- about regular enrichment or tuition classes (UNLESS there is special classes like one time trial lesson) 
-- regular places to visit (e.g. tourism attraction or cafe spots) 
-- generic activities (e.g. visiting to the park for playground)
+- about regular enrichment or tuition classes 
 - About LGBTQ related
-- Baby or maturnity related fair events (MUST NOT INCLUDE)
+- Baby or maternity related fair events (MUST NOT INCLUDE)
 - Trial classes for tuitions or enrichment
 - Openhouse for ANY types of school (pre-school, primary school etc)
 - Courses or consultations for enrolling universities
+- Held overseas
 
 Valid events include:
 - Festivals and fairs
@@ -22,11 +22,14 @@ Valid events include:
 - Community events and gatherings
 - Pop-up markets and food events
 - Special holiday activities
+- Indoor or outdoor playgrounds
+- Shopping mall events
+- Kids friendly dinning places
 
 If the article mentions multiple events under a particular event group, returns just the event group. (For instance, a fair that consists multiple activities, return the output just the fair, and not the multiple activities.)
 
-For events without specific dates, use the earliest possible date in 2025 and mark as TBA in the display.
-For events without specific prices, use "Price to be announced" and set is_free to false.
+For events without specific dates, use the earliest possible date in 2025 and mark as TBC in the display, and end with latest date in 2025.
+For events without specific prices, use "Price to be announced".
 For events without age limits, use "all ages" and set min_age to 0 and max_age to 99.
 
 ONLY IF valid events are found, include the following article metadata and event details:
@@ -39,10 +42,10 @@ Categories: [Categories from source]
 
 For each event:
 **Title**:              [20–70 chars, no location/date/time]
-**Description**:        [200–1000 chars, expand if needed]
-**Venue_display**:      [All venues; if missing, use "Online" or "To be announced"]
+**Description**:        [200–1000 chars, expand if needed.]
+**Venue_display**:      [All venues; if missing, use "Online" or "To be announced". If the venue is not in Singapore, include the region/ city of the venue.]
 **Schedule_display**:   [Weekly, one-time, or irregular. For one-time, give full start/end date and time with timezone. Exclude past events.]
-**Cost**:               ["Free" if no cost; show all price ranges with currency. Ignore blog-specific promotions.]
+**Cost**:               ["Free" if no cost; show all price ranges with Singapore dollars currency. Ignore blog-specific promotions.]
 **URL**:                [Match the links from "urls" field to each event as much as possible, where you can find more official details about the events. 
                         Do not use blog websites. If you cannot match, find a suitable URL link from the internet. 
                         It can be from a website where customers buy the ticket from (e.g. eventbrite or sistc), not necessarily from the source website.

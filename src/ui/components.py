@@ -18,11 +18,13 @@ from src.ui.helpers import (
     validate_image_count, calculate_pagination
 )
 
+import os
+from PIL import Image, UnidentifiedImageError
+
 
 def display_image_with_aspect_ratio(image_path: str, aspect_ratio: str = "Original", base_width: int = IMAGE_DISPLAY_BASE_WIDTH) -> None:
     """Display an image with the specified aspect ratio."""
     params = get_image_display_params(aspect_ratio, base_width)
-    
     if params["css_style"]:
         # Use HTML/CSS for aspect ratio control
         try:
@@ -51,13 +53,18 @@ def display_image_with_aspect_ratio(image_path: str, aspect_ratio: str = "Origin
             """
             st.markdown(html_content, unsafe_allow_html=True)
         except Exception as e:
-            # Fallback to regular st.image if HTML approach fails
-            st.image(image_path, width=params["width"], use_container_width=params["use_container_width"])
+            st.warning(f"Cannot display image: {image_path} ({e})")
+            try:
+                st.image(image_path, width=params["width"], use_container_width=params["use_container_width"])
+            except (UnidentifiedImageError, FileNotFoundError, OSError):
+                pass  # Already handled above
     else:
         # Use regular st.image for original aspect ratio (no caption)
-        st.image(image_path, width=params["width"], use_container_width=params["use_container_width"])
-
-
+        try:
+            st.image(image_path, width=params["width"], use_container_width=params["use_container_width"])
+        except (UnidentifiedImageError, FileNotFoundError, OSError) as e:
+            st.warning(f"Cannot display image: {image_path} ({e})")
+            
 def render_aspect_ratio_selector() -> str:
     """Render the aspect ratio selector dropdown."""
     return st.selectbox(
@@ -221,8 +228,8 @@ def render_event_form(event: Dict, event_idx: int) -> Dict[str, Any]:
         
         st.markdown("---")
         
-        # Fifth row: price_display, price, is_free
-        col1, col2, col3 = st.columns([1, 1, 10])
+        # Fifth row: price_display_teaser price_display, price, is_free
+        col1, col2, col3, col4 = st.columns([1, 1, 6, 4])
         with col1:
             form_data['price'] = st.number_input(
                 'price',
@@ -243,6 +250,12 @@ def render_event_form(event: Dict, event_idx: int) -> Dict[str, Any]:
                 'price_display',
                 value=event_without_images.get('price_display', ''),
                 key=f'form_price_display_{event_idx}'
+            )
+        with col4:
+            form_data['price_display_teaser'] = st.text_input(
+                'price_displa_teasery',
+                value=event_without_images.get('price_display_teaser', ''),
+                key=f'form_price_display_teaser__{event_idx}'
             )
         
         st.markdown("---")
@@ -270,8 +283,8 @@ def render_event_form(event: Dict, event_idx: int) -> Dict[str, Any]:
         
         st.markdown("---")
         
-        # Seventh row: datetime_display, start_datetime, end_datetime
-        col1, col2, col3 = st.columns([1, 1, 3])
+        # Seventh row: datetime_display_teaser, datetime_display, start_datetime, end_datetime
+        col1, col2, col3, col4 = st.columns([1, 1, 2, 1])
         with col1:
             # Parse existing ISO 8601 datetime
             parsed_date, parsed_time = parse_iso_datetime(event_without_images.get('start_datetime', ''))
@@ -302,6 +315,7 @@ def render_event_form(event: Dict, event_idx: int) -> Dict[str, Any]:
                     value=parsed_end_date if parsed_end_date else date.today(),
                     key=f"form_end_datetime_date_{event_idx}"
                 )
+
             with col2_:
                 end_selected_time = st.time_input(
                     "end_time",
@@ -315,6 +329,14 @@ def render_event_form(event: Dict, event_idx: int) -> Dict[str, Any]:
                 'datetime_display',
                 value=event_without_images.get('datetime_display', ''),
                 key=f'form_datetime_display_{event_idx}'
+            )
+
+        with col4:
+            form_data['datetime_display_teaser'] = st.text_input(
+                'datetime_display_teaser',
+                value=event_without_images.get('datetime_display_teaser',''),
+                key=f'form_datetime_display_teaser__{event_idx}'
+                
             )
         
         st.markdown("---")
