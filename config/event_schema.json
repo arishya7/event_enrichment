@@ -94,7 +94,7 @@
       },
       "datetime_display_teaser": {
         "type": "string",
-        "description": "To be display on the feed card. For instance, 'Available daily (except DDD)', 'Reucrring weekends', '28 Jun - 29 Aug', '19 Jan'. Note that it should be short, have the date to be formatted: DD-MMM. DO NOT DISPLAY THE TIME HERE AS IT NEEDS TO BE SHORT."
+        "description": "Please display **dates/days** on the feed card, using the **DD-MMM format** (e.g., '28 Jun - 29 Aug', '19 Jan'), keeping it **short** (e.g., 'Available daily','Available daily except Tue', 'Recurring weekends'), and **excluding time**."
       },
       "datetime_display": {
         "type": "string",
@@ -122,14 +122,10 @@
           "type": "string",
           "enum": [
             "Indoor Playground",
-            "Outdoors",
+            "Attraction",
             "Outdoor Playground",
             "Mall related",
-            "Kids-friendly dining",
-            "Attractions",
-            "Overseas",
-            "Attraction",
-            "Sports"
+            "Kids-friendly dining"
           ]
         }
       }

@@ -1,25 +1,25 @@
 from google import genai
 from google.genai import types
 from google.genai.types import GenerateContentConfig, GenerateContentResponse
+from typing import Optional
 
 from src.utils.text_utils import is_valid_json, clean_text
 from src.utils.timeout_utils import run_with_timeout, TimeoutError
 from src.utils.file_utils import edit_prompt_interactively
 
-def gemini_generate_text(client, model, prompt, config, timeout_seconds=60):
-    """
-    Make a Gemini API call with timeout
+def gemini_generate_text(client: genai.Client, model: str, prompt: str, config: GenerateContentConfig, timeout_seconds: int = 60) -> GenerateContentResponse:
+    """Make a Gemini API call with timeout.
     
     Args:
-        client: Google AI client
-        model: Model name
-        prompt: Content to send
-        config: Configuration
-        timeout_seconds: Timeout in seconds (default 60 seconds)
+        client (genai.Client): Google AI client
+        model (str): Model name
+        prompt (str): Content to send
+        config (GenerateContentConfig): Configuration for the generation
+        timeout_seconds (int): Timeout in seconds (default 60 seconds)
     
     Returns:
-        API response
-    
+        GenerateContentResponse: API response
+        
     Raises:
         TimeoutError: If the API call times out
     """
@@ -34,7 +34,7 @@ def gemini_generate_text(client, model, prompt, config, timeout_seconds=60):
 
 
 
-def custom_gemini_generate_content(prompt: str, config: GenerateContentConfig, model: str, google_api_key: str) -> GenerateContentResponse | None:
+def custom_gemini_generate_content(prompt: str, config: GenerateContentConfig, model: str, google_api_key: str) -> Optional[GenerateContentResponse]:
     """Generate content using Gemini API with JSON validation when needed.
     
     Args:
@@ -44,7 +44,7 @@ def custom_gemini_generate_content(prompt: str, config: GenerateContentConfig, m
         google_api_key (str): API key for authentication
         
     Returns:
-        GenerateContentResponse | None: Response object if successful, None if failed
+        Optional[GenerateContentResponse]: Response object if successful, None if failed
     """
     client = genai.Client(api_key=google_api_key)
     max_attempts = 2
@@ -88,7 +88,7 @@ def custom_gemini_generate_content(prompt: str, config: GenerateContentConfig, m
             print(f"│ │ [GenerativeLanguage.custom_gemini_generate_content] Timeout after 120 seconds")
             continue
         except Exception as e:
-            print(f"│ │ [GenerativeLanguage.custom_geminiN_generate_content] Error: {str(e)}")
+            print(f"│ │ [GenerativeLanguage.custom_gemini_generate_content] Error: {str(e)}")
             continue
             
     print("│ │ [GenerativeLanguage.custom_gemini_generate_content] All attempts exhausted")

@@ -1,5 +1,5 @@
 from urllib.parse import urlparse, parse_qs
-from typing import List
+from typing import List, Union, Dict, Any
 from html import unescape
 import re
 import json
@@ -11,35 +11,51 @@ def simple_text_to_id(text: str) -> str:
     return str(sum(ord(c) for c in text) % 10000000)  # Keep it to 7 digits
 
 def extract_post_id(guid: str) -> int:
+    """Extract post ID from RSS feed GUID.
+    
+    Args:
+        guid (str): GUID string from RSS feed
+        
+    Returns:
+        int: Extracted post ID or 0 if extraction fails
+    """
     try:
         parsed = urlparse(guid)
         query_params = parse_qs(parsed.query)
         if 'p' in query_params:
-            return query_params['p'][0]
+            return int(query_params['p'][0])
         else:
             parts = guid.split('/')
             if parts:
                 last_part = parts[-1]
                 try:
-                    return str(int(last_part))
+                    return int(last_part)
                 except ValueError:
-                    return simple_text_to_id(guid)
+                    return int(simple_text_to_id(guid))
     except Exception:
         pass
-    return "0"  # Return 0 for invalid GUIDs
+    return 0  # Return 0 for invalid GUIDs
 
 def extract_post_id_atom(guid: str) -> int:
+    """Extract post ID from Atom feed GUID.
+    
+    Args:
+        guid (str): GUID string from Atom feed
+        
+    Returns:
+        int: Extracted post ID or 0 if extraction fails
+    """
     try:
         parts = guid.split('/')
         if parts:
             last_part = parts[-1]
             try:
-                return str(int(last_part))
+                return int(last_part)
             except ValueError:
-                return simple_text_to_id(guid)
+                return int(simple_text_to_id(guid))
     except Exception:
         pass
-    return "0"  # Return 0 for invalid GUIDs
+    return 0  # Return 0 for invalid GUIDs
 
 def clean_html(html_text: str) -> str:
     # Remove CDATA sections
@@ -96,7 +112,7 @@ def extract_urls(url: str) -> List[str]:
     
     return list(set(clean_urls))  # Remove duplicates
 
-def is_valid_json(text: str) -> tuple[bool, str, any]:
+def is_valid_json(text: str) -> tuple[bool, str, Union[Dict, List, None]]:
     """Validates if a string is valid JSON and returns the parsed data.
     
     Args:

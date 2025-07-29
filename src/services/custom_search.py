@@ -10,9 +10,7 @@ load_dotenv()
 
 # Global constants
 BASE_URL = "https://www.googleapis.com/customsearch/v1"
-EXCLUDE_SITES = "lookaside OR sassymamasg OR honeykidsasia OR thesmartlocal OR theasianparent OR bykido OR skoopsg"
-
-
+EXCLUDE_SITES = "lookaside OR sassymamasg OR honeykidsasia OR thesmartlocal OR theasianparent OR bykido OR skoopsg OR littledayout OR twolittlefeet"
 
 def search_valid_url(event_title: str, organiser: str = "") -> Optional[str]:
     """

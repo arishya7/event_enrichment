@@ -1,59 +1,63 @@
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Tuple
 from datetime import datetime
 from pathlib import Path
 import shutil
 import re
 
-from src.core import *
-from src.services.custom_search import search_images, search_valid_url, validate_url
-from src.services.places import *
-from src.utils.file_utils import *
-from src.utils.url_utils import *
-from src.utils.config import config
+from src.services import *
+from src.utils import *
 
 @dataclass
 class Event:
     """Class representing an event with all its details.
     
+    This class encapsulates all information about an event including metadata,
+    location details, pricing, and associated images.
+    
+    Args:
+        title (str): Event title (required)
+        blurb (str): Short description or summary (required)
+        description (str): Full event description (required)
+        guid (str): Globally unique identifier (required)
+        activity_or_event (str): Type of activity or event (required)
+        url (str): Event webpage URL (required)
+        price_display_teaser (str): Price teaser text (required)
+        price_display (str): Formatted price string for display (required)
+        price (float): Numeric price value (required)
+        organiser (str): Event organizer name (required)
+        age_group_display (str): Formatted age range for display (required)
+        min_age (float): Minimum age requirement (required)
+        max_age (float): Maximum age limit (required)
+        datetime_display_teaser (str): Date/time teaser text (required)
+        datetime_display (str): Formatted date/time for display (required)
+        start_datetime (str): Event start date and time (required)
+        end_datetime (str): Event end date and time (required)
+        venue_name (str): Name of the venue (required)
+        categories (List[str]): Event categories/tags (required)
+        scraped_on (str): Timestamp when event was scraped (required)
+        
     Attributes:
-        title (str): Event title
-        blurb (str): Short description or summary
-        description (str): Full event description
-        guid (str): Globally unique identifier
-        url (str): Event webpage URL
-        price_display (str): Formatted price string for display
-        price (float): Numeric price value
-        is_free (bool): Whether the event is free
-        organiser (str): Event organizer name
-        age_group_display (str): Formatted age range for display
-        min_age (float): Minimum age requirement
-        max_age (float): Maximum age limit
-        datetime_display (str): Formatted date/time for display
-        start_datetime (str): Event start date and time
-        end_datetime (str): Event end date and time
-        venue_name (str): Name of the venue
-        categories (List[str]): Event categories/tags
-        scraped_on (str): Timestamp when event was scraped
-        full_address (str): Complete venue address
-        latitude (float): Venue latitude
-        longitude (float): Venue longitude
-        images (List[Dict[str, str]]): List of image dictionaries with keys:
-            - local_path: Local filesystem path where the image is stored
-            - original_url: Original URL where the image was downloaded from
-            - filename: Name of the image file
-            - source_credit: Attribution or credit for the image source
+        Auto-initialized (set in __post_init__):
+            is_free (bool): Whether the event is free (calculated from price)
+            
+        Optional fields with defaults:
+            full_address (str): Complete venue address (default: "")
+            latitude (float): Venue latitude (default: 0.0)
+            longitude (float): Venue longitude (default: 0.0)
+            images (List[Dict[str, str]]): List of image dictionaries (default: [])
+            checked (bool): Whether event has been reviewed (default: False)
     """
+    # Required input fields
     title: str
     blurb: str
     description: str
     guid: str
     activity_or_event: str
     url: str
-    price_display_teaser : str
+    price_display_teaser: str
     price_display: str
     price: float
-    is_free: bool = field(init=False)
     organiser: str
     age_group_display: str
     min_age: float
@@ -65,6 +69,10 @@ class Event:
     venue_name: str
     categories: List[str]
     scraped_on: str
+    
+    # Auto-initialized fields
+    is_free: bool = field(init=False)
+    
     # Optional fields with defaults
     full_address: str = field(default="")
     latitude: float = field(default=0.0)
@@ -73,7 +81,8 @@ class Event:
     checked: bool = field(default=False)
 
     def __post_init__(self):
-        # Check if current URL is valid
+        """Initialize computed fields after object creation."""
+        # Check if current URL is valid and try to find a valid one if needed
         if not validate_url(self.url):
             new_url = search_valid_url(
                 event_title=self.title,
@@ -82,7 +91,7 @@ class Event:
             if new_url:
                 self.url = new_url
 
-        # Set up is_free variable
+        # Set up is_free variable based on price
         self.is_free = True if self.price == 0.0 else False
 
         # Set up price display teaser if it has only paid options
@@ -147,11 +156,12 @@ class Event:
             print(f"[ERROR][Event.from_dict] Failed to create event from dictionary: {str(e)}")
             raise
     
-    def get_address_n_coord(self) -> tuple[str, float, float]:
+    def get_address_n_coord(self) -> Optional[Tuple[str, float, float]]:
         """Get the full address and coordinates for the event venue.
         
         Returns:
-            tuple[str, float, float]: Tuple containing (full_address, latitude, longitude)
+            Optional[Tuple[str, float, float]]: Tuple containing (full_address, latitude, longitude) 
+            or None if no place found
         """
         place = googlePlace_searchText(self.venue_name)
         if place:
@@ -194,8 +204,6 @@ class Event:
         downloaded_images = download_image(image_urls, base_file_path)
         
         return downloaded_images
-
-
 
 if __name__ == "__main__":
     print("\n=== Testing Event Class ===\n")

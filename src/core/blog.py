@@ -1,33 +1,56 @@
 from dataclasses import dataclass, field, asdict
-from typing import List
+from typing import List, Tuple, Optional
 from pathlib import Path
 import xml.etree.ElementTree as ET
 import json
 import subprocess
 import sys
 
-from src.utils.config import config
-from src.utils.text_utils import *
-from src.core import *
+from src.utils import *
+from src.core.article import Article
+from src.core.event import Event
 from src.core.database import execute_query
-from src.utils.file_utils import save_to_json
-from src.utils.output_formatter import formatter
 
 @dataclass
 class Blog:
+    """Class representing a blog with its feed and articles.
+    
+    This class manages the processing of RSS/Atom feeds for a specific blog,
+    including feed extraction, article parsing, and event management.
+    
+    Args:
+        name (str): Name of the blog (required)
+        feed_url (str): URL of the blog's RSS/Atom feed (required)
+        timestamp (str): Timestamp when this blog was processed (required)
+        
+    Attributes:
+        Auto-initialized (set in __post_init__):
+            articles (List[Article]): List of articles from this blog (default: [])
+    """
+    # Required input fields
     name: str
     feed_url: str
-    timestamp:str
+    timestamp: str
+    
+    # Auto-initialized fields
     articles: List[Article] = field(default_factory=list)
 
-    def _get_events_as_dict(self)->list[Event]:
-        ls = []
+    def _get_all_events(self) -> List[Event]:
+        """Get all events from all articles in this blog.
+        
+        Returns:
+            List[Event]: List of all events from all articles
+        """
+        events = []
         for article_obj in self.articles:
-            ls += article_obj.events
-        return ls
+            events.extend(article_obj.events)
+        return events
 
     def extract_feed(self) -> bool:
         """Extract feed by launching manual feed manager.
+        
+        Launches a Streamlit-based feed manager to allow manual input
+        of XML feed content for this blog.
         
         Returns:
             bool: True if feed file exists after the process, False otherwise
@@ -128,7 +151,18 @@ class Blog:
             return False
 
 
-    def parse_feed_file(self) -> List[Article]:
+    def parse_feed_file(self) -> Tuple[List[Article], Optional[str]]:
+        """Parse the XML feed file and extract articles.
+        
+        Reads the XML feed file for this blog, parses RSS or Atom format,
+        and creates Article objects for each entry. Skips articles that
+        have already been processed based on database records.
+        
+        Returns:
+            Tuple[List[Article], Optional[str]]: Tuple containing:
+                - List of Article objects
+                - Path to saved articles JSON file (empty string if none saved)
+        """
         feed_file_path = Path(config.paths.temp_feed) / f"{self.name}.xml"
         articles_ls = []
         articles_file_ls = []
@@ -170,14 +204,14 @@ class Blog:
 
                 articles_ls.append(article)
                 new_guids.append(article.post_id)
-                articles_file_ls += [asdict(article)]
+                articles_file_ls.append(asdict(article))
 
             if articles_file_ls:
                 article_file_path = Path(config.paths.temp_articles_output) / f"{self.name}.json"
                 with open(article_file_path, 'w', encoding='utf-8') as f:
                     json.dump(articles_file_ls, f, indent=2, ensure_ascii=False)
 
-            return articles_ls, article_file_path
+            return articles_ls, str(article_file_path) if article_file_path else ""
 
         except FileNotFoundError:
             formatter.print_error(f"Feed file not found: {feed_file_path}")
@@ -189,27 +223,29 @@ class Blog:
             formatter.print_error(f"Failed to parse feed file for {self.name}: {str(e)}")
             return articles_ls, ""
     
-    def load_events_as_json(self, path: Path) -> bool:
+    def load_events_as_json(self, path: Path) -> Tuple[bool, List]:
         """Save blog events to a JSON file.
         
         Args:
             path (Path): Path where to save the JSON file
             
         Returns:
-            bool: True if save was successful, False otherwise
+            Tuple[bool, List]: Tuple containing:
+                - bool: True if save was successful, False otherwise
+                - List: List of event dictionaries that were saved
         """
         # Validate that blog has articles
         if not self.articles:
             formatter.print_error(f"No articles found for blog {self.name}")
-            return False
+            return False, []
             
         # Validate that articles have events
         articles_with_events = [article for article in self.articles if article.events]
         if not articles_with_events:
-            return False
+            return False, []
             
         # Convert events to list of dictionaries
-        events_dict_ls = [asdict(event_obj) for event_obj in self._get_events_as_dict()]
+        events_dict_ls = [asdict(event_obj) for event_obj in self._get_all_events()]
         
         # Save to JSON using utility function
         return save_to_json(events_dict_ls, path), events_dict_ls
