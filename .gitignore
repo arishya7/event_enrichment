@@ -7,7 +7,6 @@ data/events.json
 
 # Virtual environments
 venv_main/
-venv_app/
 .env
 
 # Python cache and compiled files
