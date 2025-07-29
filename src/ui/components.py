@@ -110,22 +110,21 @@ def render_pagination_controls(pagination_info: Dict[str, int]) -> Optional[int]
 
 def render_event_header(event_idx: int, is_checked: bool) -> bool:
     """Render event header with checkbox and title. Returns new checked state."""
-    checkbox_col, title_col, btn_col = st.columns([0.1, 0.8, 0.1])
+    checkbox_col, title_col, btn_col, empty_col = st.columns([0.15, 0.15, 0.1, 0.6])
     
     with checkbox_col:
         new_checked = st.checkbox(
-            "Mark as reviewed", 
+            "_Mark as reviewed_", 
             value=is_checked, 
             key=f"check_event_{event_idx}", 
             help="Check to mark as reviewed",
-            label_visibility="hidden"
         )
     
     with title_col:
         if new_checked:
-            st.markdown(f"## ✓ Event number {event_idx + 1} - CHECKED")
+            st.markdown(f"  ### ✓ Event number {event_idx + 1} - CHECKED")
         else:
-            st.markdown(f"## Event number {event_idx + 1}")
+            st.markdown(f"### Event number {event_idx + 1}")
     
     with btn_col:
         delete_requested = st.button(
@@ -253,9 +252,9 @@ def render_event_form(event: Dict, event_idx: int) -> Dict[str, Any]:
             )
         with col4:
             form_data['price_display_teaser'] = st.text_input(
-                'price_displa_teasery',
+                'price_display_teaser',
                 value=event_without_images.get('price_display_teaser', ''),
-                key=f'form_price_display_teaser__{event_idx}'
+                key=f'form_price_display_teaser_{event_idx}'
             )
         
         st.markdown("---")
@@ -335,7 +334,7 @@ def render_event_form(event: Dict, event_idx: int) -> Dict[str, Any]:
             form_data['datetime_display_teaser'] = st.text_input(
                 'datetime_display_teaser',
                 value=event_without_images.get('datetime_display_teaser',''),
-                key=f'form_datetime_display_teaser__{event_idx}'
+                key=f'form_datetime_display_teaser_{event_idx}'
                 
             )
         
@@ -467,16 +466,15 @@ def render_success_message(event_idx: int) -> None:
         del st.session_state[success_key]
 
 
-def render_page_header(pagination_info: Dict[str, int]) -> None:
+def render_page_header(pagination_info: Dict[str, int], num_total_events: int) -> None:
     """Render the page header with pagination info."""
     start_idx = pagination_info["start_idx"]
     end_idx = pagination_info["end_idx"]
-    total_items = start_idx + (end_idx - start_idx) if end_idx > start_idx else 0
     
     col1, col2 = st.columns([3, 1])
     with col1:
         if pagination_info["total_pages"] > 0:
-            st.header(f"Showing events {start_idx + 1}–{end_idx} of {total_items}")
+            st.header(f"Showing events {start_idx + 1}–{end_idx} of {num_total_events}")
         else:
             st.header("No events found")
     

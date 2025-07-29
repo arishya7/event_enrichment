@@ -115,21 +115,19 @@ class Run:
                 formatter.print_article_end()
             
             events_output_blog_dir = Path(config.paths.events_output) / self.timestamp / f"{blog.name}.json"
-            have_loaded_events_as_json = blog.load_events_as_json(events_output_blog_dir)
+            have_loaded_events_as_json, event_dict_ls = blog.load_events_as_json(events_output_blog_dir)
             
             if have_loaded_events_as_json:
                 formatter.print_level1("")
                 formatter.print_success(f"Events saved to: {events_output_blog_dir}")
-                with open(events_output_blog_dir, 'r', encoding='utf-8') as f:
-                    _ls = json.load(f)
-                formatter.print_success(f"Number of events: {len(_ls)}")
+                formatter.print_success(f"Number of events: {len(event_dict_ls)}")
             else:
                 formatter.print_level1("")
                 formatter.print_warning(f"No events found for {blog.name}")
             formatter.print_box_end(bottom_line)
         
         # Handle review and edit process
-        self.handle_events_review()
+        self.handle_events_review(self.events_output_dir)
         
         # Record processing attempts in database with final event counts
         formatter.print_section("Recording processed articles to database...")
@@ -154,27 +152,13 @@ class Run:
         
         formatter.print_header("✨ Run completed successfully!")
 
-    def handle_events_review(self) -> None:
+    def handle_events_review(self, dir:Path ) -> None:
         """Handle the review and edit process for events.
         This includes:
         1. Showing where event files are saved
         2. Getting user confirmation for review/edit
         3. Updating articles after edits
         """
-        print("\n┌─ Final Summary ─────────────────────────")
-        print("│ All blogs have been processed.")
-        events_dir = Path(config.paths.events_output) / self.timestamp
-        json_files = list(events_dir.glob("*.json"))
-        
-        if json_files:
-            print("│ Events are saved in:")
-            for json_file in json_files:
-                print(f"│ │ {json_file}")
-            print("│")
-        else:
-            print("│ No event JSON files.")
-            print("└─────────────────────────────────────────")
-            return
         
         confirmation = input("│ Do you want to review and edit the events? (Y/N): ").strip().upper()
         
@@ -195,11 +179,11 @@ class Run:
                 # Launch Streamlit using current Python environment
                 if sys.platform == "win32":
                     # On Windows, use current Python executable
-                    cmd = f'"{sys.executable}" -m streamlit run src/ui/main_app.py --server.headless=false'
+                    cmd = f'"{sys.executable}" -m streamlit run src/ui/main_app.py --server.headless=false -- --events-output "{dir}"'
                     process = subprocess.Popen(cmd, shell=True, cwd=current_dir)
                 else:
                     # On Unix-like systems, use current Python executable
-                    cmd = [sys.executable, "-m", "streamlit", "run", "src/ui/main_app.py", "--server.headless=false"]
+                    cmd = [sys.executable, "-m", "streamlit", "run", "src/ui/main_app.py", "--server.headless=false", "--", "--events-output", dir]
                     process = subprocess.Popen(cmd, cwd=current_dir)
                 
                 print("│")
@@ -228,7 +212,6 @@ class Run:
         else:
             print("│ Edit operation cancelled.")
         
-        print("└─────────────────────────────────────────")
 
     def merge_events(self) -> Optional[Path]:
         """Merge all blog events into a single file and return the file_path.

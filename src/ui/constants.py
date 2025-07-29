@@ -36,10 +36,10 @@ STREAMLIT_PAGE_CONFIG = {
 # Form field configuration
 SPECIAL_FIELDS = [
     'title', 'organiser', 'blurb', 'description', 'url',
-    'activity_or_event', 'categories', 'price_display', 'price', 'is_free',
-    'age_group_display', 'min_age', 'max_age', 'datetime_display',
+    'activity_or_event', 'categories', 'price_display', 'price', 'is_free', 'price_display_teaser',
+    'age_group_display', 'min_age', 'max_age', 'datetime_display', 'datetime_display_teaser',
     'start_datetime', 'end_datetime', 'venue_name', 'full_address',
-    'latitude', 'longitude'
+    'latitude', 'longitude', 'checked'
 ]
 
 DISABLED_FIELDS = ['guid', 'scraped_on', 'latitude', 'longitude']

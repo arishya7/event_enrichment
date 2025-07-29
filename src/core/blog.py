@@ -10,7 +10,7 @@ from src.utils.config import config
 from src.utils.text_utils import *
 from src.core import *
 from src.core.database import execute_query
-from src.utils import file_utils
+from src.utils.file_utils import save_to_json
 from src.utils.output_formatter import formatter
 
 @dataclass
@@ -209,10 +209,10 @@ class Blog:
             return False
             
         # Convert events to list of dictionaries
-        events_dict_ls = [asdict(event) for event in self._get_events_as_dict()]
+        events_dict_ls = [asdict(event_obj) for event_obj in self._get_events_as_dict()]
         
         # Save to JSON using utility function
-        return file_utils.save_to_json(events_dict_ls, path)
+        return save_to_json(events_dict_ls, path), events_dict_ls
 
 if __name__ == "__main__":
     blog = Blog("sassymamasg","")

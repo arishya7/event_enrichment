@@ -8,25 +8,24 @@ REM Function to show usage
 if "%~1"=="" goto :usage
 
 set FUNCTION=%1
-set TIMESTAMP=%2
-shift
+REM Set default events output directory
+set EVENTS_OUTPUT=data/events_output
 shift
 
-REM Get timestamp - either from command line or user input
-if "%TIMESTAMP%"=="" (
-    echo [INFO] Available timestamps:
-    if exist "data\events_output" (
-        for /f "delims=" %%i in ('dir /b "data\events_output" 2^>nul ^| findstr /r "^[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]_[0-9][0-9][0-9][0-9][0-9][0-9]$"') do echo   %%i
-    ) else (
-        echo [WARNING] No events output directory found
-    )
-    echo.
-    set /p TIMESTAMP="Enter timestamp (YYYYMMDD_HHMMSS): "
-    if "!TIMESTAMP!"=="" (
-        echo [ERROR] Timestamp cannot be empty
-        exit /b 1
-    )
+REM Parse additional arguments
+:parse_args
+if "%~1"=="" goto :done_parsing
+if "%~1"=="--events-output" (
+    set EVENTS_OUTPUT=%~2
+    shift
+    shift
+    goto :parse_args
 )
+REM Handle other arguments by shifting
+shift
+goto :parse_args
+
+:done_parsing
 
 REM Validate function
 if "%FUNCTION%"=="review" goto :valid_function
@@ -38,13 +37,6 @@ echo [ERROR] Invalid function: %FUNCTION%
 goto :usage
 
 :valid_function
-REM Check if timestamp directory exists
-set TIMESTAMP_DIR=data\events_output\%TIMESTAMP%
-if not exist "%TIMESTAMP_DIR%" (
-    echo [WARNING] Timestamp directory does not exist: %TIMESTAMP_DIR%
-    echo [INFO] Make sure you have run the main process first
-)
-
 REM Activate virtual environment and run the function
 echo [INFO] Activating virtual environment...
 call venv_main\Scripts\activate 2>nul
@@ -53,8 +45,9 @@ if errorlevel 1 (
     echo [INFO] Trying without virtual environment...
 )
 
-echo [INFO] Running function: %FUNCTION% with timestamp: %TIMESTAMP%
-python Script\run_individual_functions.py %FUNCTION% --timestamp %TIMESTAMP% %1 %2 %3 %4 %5 %6 %7 %8 %9
+echo [INFO] Running function: %FUNCTION%
+echo [INFO] Using events output directory: %EVENTS_OUTPUT%
+python Script\run_individual_functions.py %FUNCTION% --events-output "%EVENTS_OUTPUT%" %1 %2 %3 %4 %5 %6 %7 %8 %9
 
 if errorlevel 1 (
     echo [ERROR] Function %FUNCTION% failed
@@ -66,7 +59,7 @@ if errorlevel 1 (
 goto :end
 
 :usage
-echo Usage: %~n0 ^<function^> [timestamp] [options]
+echo Usage: %~n0 ^<function^> [options]
 echo.
 echo Functions:
 echo   review    - Launch event review/edit interface
@@ -75,14 +68,15 @@ echo   upload    - Upload files to AWS S3
 echo   cleanup   - Clean up temporary files
 echo.
 echo Options:
-echo   --merged-file ^<path^>   Path to merged events file (for upload)
+echo   --events-output ^<path^>  Path to events output directory (default: data/events_output)
+echo   --merged-file ^<path^>    Path to merged events file (for upload)
 echo.
 echo Examples:
-echo   %~n0 review                               # Will prompt for timestamp
-echo   %~n0 review 20250715_103130              # Use specific timestamp
+echo   %~n0 review                               # Use default events output directory
+echo   %~n0 review --events-output "custom/events/path"
 echo   %~n0 merge
 echo   %~n0 upload
-echo   %~n0 upload 20250715_103130 --merged-file data/events.json
+echo   %~n0 upload --merged-file data/events.json
 echo   %~n0 cleanup
 exit /b 1
 

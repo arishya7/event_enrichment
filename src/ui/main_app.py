@@ -5,14 +5,16 @@ Main application logic for the Event JSON & Image Editor.
 import sys
 import streamlit as st
 from pathlib import Path
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
+import argparse
+import time
 
 # Add the project root to the Python path
 root_path = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(root_path))
 
 from src.ui.constants import (
-    STREAMLIT_PAGE_CONFIG, EVENTS_OUTPUT_DIR, DEFAULT_EVENTS_PER_PAGE,
+    STREAMLIT_PAGE_CONFIG, DEFAULT_EVENTS_PER_PAGE,
     DEFAULT_ASPECT_RATIO, MAX_IMAGES_PER_EVENT, SUPPORTED_IMAGE_TYPES
 )
 from src.ui.helpers import (
@@ -90,6 +92,8 @@ def confirm_delete_image(event_manager: EventManager, event_idx: int, img_idx: i
                 st.success(message)
             else:
                 st.error(message)
+                time.sleep(3)
+
             st.rerun()
     
     with col2:
@@ -270,9 +274,12 @@ def render_image_metadata_form(event_manager: EventManager, event_idx: int, img_
         if st.form_submit_button("💾 Save Image", type="primary"):
             # Handle image replacement if uploaded
             if new_img_file:
-                # This would need additional logic to handle file replacement
-                # For now, just update metadata
-                pass
+                # Get the current image file path
+                current_local_path = img_obj.get('local_path', '')
+                if current_local_path:
+                    image_file_path = Path("data") / current_local_path
+                    # Overwrite the file with the new uploaded file
+                    image_file_path.write_bytes(new_img_file.getbuffer())
             
             success, message = event_manager.update_image_metadata(event_idx, img_idx, metadata_updates)
             if success:
@@ -280,6 +287,20 @@ def render_image_metadata_form(event_manager: EventManager, event_idx: int, img_
                 st.rerun()
             else:
                 st.error(f"❌ {message}")
+
+
+def get_events_output_dir() -> Path:
+    """Parse command line arguments to get events output directory."""
+    parser = argparse.ArgumentParser(description='Event JSON & Image Editor')
+    parser.add_argument('--events-output', 
+                       type=str, 
+                       help='Path to events output directory',
+                       default='data/events_output')
+    
+    # Parse known args to handle Streamlit's own arguments
+    args, unknown = parser.parse_known_args()
+    
+    return Path(args.events_output)
 
 
 def main():
@@ -290,13 +311,17 @@ def main():
     # Initialize session state
     initialize_session_state()
     
+    # Get events output directory from command line arguments
+    events_output_dir = get_events_output_dir()
+    
     st.title("Event JSON & Image Editor")
+    st.info(f"📁 Events directory: {events_output_dir.absolute()}")
     st.divider()
     
     # 1. Select timestamp folder and aspect ratio
-    timestamp_folders = find_timestamp_folders(EVENTS_OUTPUT_DIR)
+    timestamp_folders = find_timestamp_folders(events_output_dir)
     if not timestamp_folders:
-        st.warning("No timestamp folders found in data/events_output.")
+        st.warning(f"No timestamp folders found in {events_output_dir}.")
         st.stop()
     
     # Three-column layout for controls
@@ -317,7 +342,7 @@ def main():
     # 2. Select JSON file within the selected timestamp folder
     json_files_in_timestamp = find_json_files_in_timestamp(selected_timestamp_folder)
     if not json_files_in_timestamp:
-        st.warning(f"No JSON files found in timestamp folder {selected_timestamp_folder.name}.")
+        st.warning(f"No JSON files found in folder {selected_timestamp_folder.name}.")
         st.stop()
     
     with col3:
@@ -347,7 +372,7 @@ def main():
     st.session_state['current_page'] = pagination_info['current_page']
     
     # 5. Display header with pagination
-    render_page_header(pagination_info)
+    render_page_header(pagination_info, total_events)
     
     # 6. Display events for current page
     start_idx = pagination_info['start_idx']

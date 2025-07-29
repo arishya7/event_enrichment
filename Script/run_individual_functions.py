@@ -18,18 +18,18 @@ def main():
     parser = argparse.ArgumentParser(description='Run individual functions from the Run class')
     parser.add_argument('function', choices=['review', 'merge', 'upload', 'cleanup'], 
                        help='Function to run: review, merge, upload, or cleanup')
-    parser.add_argument('--timestamp', required=True, help='Timestamp for the run (e.g., 20250715_103130)')
+    parser.add_argument('--events-output', help='Path to events output directory (default: data/events_output)', default='data/events_output')
     parser.add_argument('--merged-file', help='Path to merged events file (for upload function)')
     
     args = parser.parse_args()
     
     # Create Run instance
-    run = Run(args.timestamp)
+    run = Run(timestamp="xxxxxxTxxxxxx")
     
     try:
         if args.function == 'review':
-            print("🔍 Starting event review process...")
-            run.handle_events_review()
+            print(f"🔍 Starting event review process in {args.events_output}...")
+            run.handle_events_review(Path(args.events_output))
             print("✅ Event review completed!")
             
         elif args.function == 'merge':

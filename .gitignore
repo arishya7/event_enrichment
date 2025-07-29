@@ -1,8 +1,9 @@
 # Ignore everything in data except data/feed
 /data/archive/
 /data/temp/
-/data/events_output
-events.json
+/data/events_output/
+/data/evergreen/
+data/events.json
 
 # Virtual environments
 venv_main/
@@ -10,4 +11,4 @@ venv_app/
 .env
 
 # Python cache and compiled files
-__pycache__/
+__pycache__

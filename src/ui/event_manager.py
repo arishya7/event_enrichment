@@ -455,13 +455,14 @@ class EventManager:
         # Try to use the same directory as existing images
         if images and images[0].get("local_path"):
             save_dir = Path("data") / Path(images[0]["local_path"]).parent
-        elif event_idx < len(self.events) - 1:
+        else:
             # Check other events for directory structure
             for other_event in self.events:
                 if other_event.get("images") and other_event["images"][0].get("local_path"):
                     example_path = Path(other_event["images"][0]["local_path"])
                     if len(example_path.parts) > 1:
-                        save_dir = Path("data") / example_path.parts[0]
+                        # Use the full parent path, not just the first part
+                        save_dir = Path("data") / example_path.parent
                     break
         
         return save_dir
@@ -505,6 +506,8 @@ class EventManager:
         for item in temp_names:
             old_path = save_dir / item['old_filename']
             temp_path = save_dir / item['temp_filename']
+            if temp_path.exists():
+                temp_path.unlink()  # Remove the temp file if it already exists
             if old_path.exists():
                 old_path.rename(temp_path)
         
