@@ -21,10 +21,10 @@ The system currently scrapes **9 popular Singapore family blogs**:
 | Blog | Feed URL |
 |------|----------|
 | **Bykido** | https://www.bykido.com/blogs/guides-and-reviews-singapore.atom/ |
-| **Honey Kids Asia** | https://honeykidsasia.com/feed/ |
-| **Sassy Mama SG** | https://www.sassymamasg.com/feed/ |
+| **HoneyKidsAsia** | https://honeykidsasia.com/feed/ |
+| **SassyMama** | https://www.sassymamasg.com/feed/ |
 | **Skoolopedia** | https://skoolopedia.com/feed/ |
-| **Skoop SG** | https://skoopsg.com/feed/ |
+| **Skoopsg** | https://skoopsg.com/feed/ |
 | **The Asian Parent** | https://sg.theasianparent.com/feed/ |
 | **The Honeycombers** | https://thehoneycombers.com/singapore/feed/ |
 | **The New Age Parents** | https://thenewageparents.com/feed/ |
@@ -82,26 +82,20 @@ CREATE TABLE processed_articles (
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/your-username/web-scraping-refactor.git
-cd web-scraping-refactor
+git clone https://github.com/your-username/web-scraping.git
+cd web-scraping
 ```
 
 2. **Download requirements files:**
-   - Download `requirements_main.txt` for the main processing pipeline
-   - Download `requirements_app.txt` for the web application interface
+   - Download `requirements.txt` for the main processing pipeline
    - Place both files in the project root directory
 
 3. **Create virtual environments:**
 ```bash
 # For main processing
-python -m venv venv_main
-venv_main/bin/activate  # On Windows: venv_main\Scripts\activate
-pip install -r requirements_main.txt
-
-# For web app
-python -m venv venv_app
-venv_app/bin/activate   # On Windows: venv_app\Scripts\activate
-pip install -r requirements_app.txt
+python -m venv venv
+venv_\Scripts\activate
+pip install -r requirements.txt
 ```
 
 4. **Set up environment variables:**
@@ -177,11 +171,9 @@ python -m src.services.aws_s3
 
 ## Running Individual Functions with Scripts
 
-You can run individual functions (review, merge, upload, cleanup) using the same input format for all platforms:
+You can run individual functions (review, merge, upload, cleanup) using the same input format for window:
 
 - **Windows Batch (.bat)**
-- **PowerShell (.ps1)**
-- **Shell Script (.sh)**
 
 **Usage:**
 ```bash
@@ -216,18 +208,18 @@ Script/run_functions.bat cleanup YYYYMMDD_HHMMSS
 
 ```
 web-scraping-refactor/
-├── data/                     # Data storage
-│   ├── events_output/        # Timestamped event outputs
-│   ├── temp/                 # Temporary processing files
+├── data/                    # Data storage
+│   ├── events_output/       # Timestamped event outputs
+│   ├── temp/                # Temporary processing files
 │   └── guid.db              # SQLite database
-├── config/                   # Configuration files
-├── src/                      # Source code
+├── config/                  # Configuration files
+├── src/                     # Source code
 │   ├── core/                # Core business logic
 │   ├── services/            # External service integrations
 │   ├── ui/                  # Web interface components
 │   └── utils/               # Utility functions
-├── Script/                   # Platform-specific scripts
-└── requirements_*.txt        # Dependencies
+├── Script/                  # Platform-specific scripts
+└── requirements.txt         # Dependencies
 ```
 
 ## Architecture Diagram
