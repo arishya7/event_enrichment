@@ -1,12 +1,17 @@
 """
-UI Components for the Event JSON & Image Editor application.
+UI Components for Event JSON & Image Editor Application
+
+This module provides reusable UI components and widgets for the Event JSON & Image Editor
+application. It contains all the visual elements and interactive components used throughout
+the application interface.
+
 """
 
 import base64
 import streamlit as st
 from pathlib import Path
 from datetime import date, time
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any, Optional, Tuple
 
 from src.ui.constants import (
     AVAILABLE_CATEGORIES, ACTIVITY_OR_EVENT, SPECIAL_FIELDS, DISABLED_FIELDS,
@@ -15,7 +20,7 @@ from src.ui.constants import (
 )
 from src.ui.helpers import (
     get_image_display_params, parse_iso_datetime, combine_to_iso_datetime,
-    validate_image_count, calculate_pagination
+    validate_image_count, calculate_pagination, filter_events_by_search
 )
 
 import os
@@ -23,7 +28,28 @@ from PIL import Image, UnidentifiedImageError
 
 
 def display_image_with_aspect_ratio(image_path: str, aspect_ratio: str = "Original", base_width: int = IMAGE_DISPLAY_BASE_WIDTH) -> None:
-    """Display an image with the specified aspect ratio."""
+    """
+    Display an image with the specified aspect ratio.
+    
+    Renders an image with precise aspect ratio control using either CSS styling
+    or native Streamlit image display. Supports multiple image formats and
+    provides fallback handling for various error conditions.
+    
+    The function provides:
+    - CSS-based aspect ratio control for consistent display
+    - Automatic image format detection and MIME type handling
+    - Base64 encoding for HTML display
+    - Fallback to native Streamlit display for original aspect ratio
+    - Comprehensive error handling for missing or corrupted files
+    
+    Args:
+        image_path (str): Path to the image file
+        aspect_ratio (str): Aspect ratio to apply ("Original", "4:3", "16:9")
+        base_width (int): Base width for image display calculations
+        
+    Example:
+        display_image_with_aspect_ratio("event_image.jpg", "16:9", 800)
+    """
     params = get_image_display_params(aspect_ratio, base_width)
     if params["css_style"]:
         # Use HTML/CSS for aspect ratio control
@@ -66,7 +92,19 @@ def display_image_with_aspect_ratio(image_path: str, aspect_ratio: str = "Origin
             st.warning(f"Cannot display image: {image_path} ({e})")
             
 def render_aspect_ratio_selector() -> str:
-    """Render the aspect ratio selector dropdown."""
+    """
+    Render the aspect ratio selector dropdown.
+    
+    Creates a dropdown widget for selecting image display aspect ratios.
+    Provides user-friendly options with helpful descriptions.
+    
+    Returns:
+        str: Selected aspect ratio value
+        
+    Example:
+        selected_ratio = render_aspect_ratio_selector()
+        # Returns: "16:9", "4:3", or "Original"
+    """
     return st.selectbox(
         "Aspect Ratio 📷",
         options=ASPECT_RATIOS,
@@ -76,7 +114,25 @@ def render_aspect_ratio_selector() -> str:
 
 
 def render_pagination_controls(pagination_info: Dict[str, int]) -> Optional[int]:
-    """Render pagination controls and return selected page if changed."""
+    """
+    Render pagination controls and return selected page if changed.
+    
+    Creates a pagination interface with previous/next buttons and a page selector.
+    Handles edge cases like single-page results and provides intuitive navigation.
+    
+    Args:
+        pagination_info (Dict[str, int]): Pagination information containing:
+            - total_pages: Total number of pages
+            - current_page: Current page number
+            
+    Returns:
+        Optional[int]: New page number if changed, None otherwise
+        
+    Example:
+        new_page = render_pagination_controls(pagination_info)
+        if new_page is not None:
+            # Handle page change
+    """
     total_pages = pagination_info["total_pages"]
     current_page = pagination_info["current_page"]
     
@@ -108,8 +164,30 @@ def render_pagination_controls(pagination_info: Dict[str, int]) -> Optional[int]
     return None
 
 
-def render_event_header(event_idx: int, is_checked: bool) -> bool:
-    """Render event header with checkbox and title. Returns new checked state."""
+def render_event_header(event_idx: int, is_checked: bool) -> Tuple[bool, bool]:
+    """
+    Render event header with checkbox and title. Returns new checked state.
+    
+    Creates the header section for each event including:
+    - Checkbox for marking events as reviewed
+    - Event title and number display
+    - Delete button for event removal
+    
+    The header provides visual feedback for the event's review status
+    and quick access to deletion functionality.
+    
+    Args:
+        event_idx (int): Index of the event
+        is_checked (bool): Current checked status of the event
+        
+    Returns:
+        Tuple[bool, bool]: (new_checked_state, delete_requested)
+        
+    Example:
+        new_checked, delete_requested = render_event_header(0, False)
+        if delete_requested:
+            # Handle event deletion
+    """
     checkbox_col, title_col, btn_col, empty_col = st.columns([0.15, 0.15, 0.1, 0.6])
     
     with checkbox_col:
@@ -136,8 +214,33 @@ def render_event_header(event_idx: int, is_checked: bool) -> bool:
     return new_checked, delete_requested
 
 
-def render_event_form(event: Dict, event_idx: int) -> Dict[str, Any]:
-    """Render the event editing form and return form data."""
+def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
+    """
+    Render the event editing form and return form data.
+    
+    Creates a comprehensive form for editing event data with all necessary fields.
+    The form includes special handling for different data types and provides
+    a user-friendly interface for event management.
+    
+    The form features:
+    - Organized field layout with logical grouping
+    - Dynamic field rendering based on data types
+    - Special handling for datetime fields
+    - Coordinate display and validation
+    - Form validation and error handling
+    
+    Args:
+        event (Dict): Event data dictionary
+        event_idx (int): Index of the event being edited
+        
+    Returns:
+        Optional[Dict[str, Any]]: Form data if submitted, None otherwise
+        
+    Example:
+        form_data = render_event_form(event_data, 0)
+        if form_data:
+            # Process form submission
+    """
     event_without_images = {k: v for k, v in event.items() if k != "images"}
     
     with st.form(key=f"event_form_{event_idx}"):
@@ -441,7 +544,25 @@ def render_event_form(event: Dict, event_idx: int) -> Dict[str, Any]:
 
 
 def render_image_upload_section(event_idx: int, current_image_count: int, key_suffix: str = "") -> Optional[Any]:
-    """Render image upload section."""
+    """
+    Render image upload section.
+    
+    Creates an image upload widget with validation and user feedback.
+    Prevents uploads when the maximum image count is reached.
+    
+    Args:
+        event_idx (int): Index of the event
+        current_image_count (int): Current number of images for the event
+        key_suffix (str): Optional suffix for widget keys
+        
+    Returns:
+        Optional[Any]: Uploaded file object or None
+        
+    Example:
+        uploaded_file = render_image_upload_section(0, 3)
+        if uploaded_file:
+            # Process uploaded file
+    """
     if current_image_count >= MAX_IMAGES_PER_EVENT:
         st.warning(f"Maximum of {MAX_IMAGES_PER_EVENT} images allowed per event.")
         return None
@@ -457,7 +578,15 @@ def render_image_upload_section(event_idx: int, current_image_count: int, key_su
 
 
 def render_success_message(event_idx: int) -> None:
-    """Render success message if it exists in session state."""
+    """
+    Render success message if it exists in session state.
+    
+    Displays success messages stored in session state for specific events.
+    Automatically clears the message after display to prevent repetition.
+    
+    Args:
+        event_idx (int): Index of the event for the message
+    """
     success_key = f'success_message_{event_idx}'
     
     if success_key in st.session_state:
@@ -466,23 +595,80 @@ def render_success_message(event_idx: int) -> None:
         del st.session_state[success_key]
 
 
-def render_page_header(pagination_info: Dict[str, int], num_total_events: int) -> None:
-    """Render the page header with pagination info."""
-    start_idx = pagination_info["start_idx"]
-    end_idx = pagination_info["end_idx"]
+def render_page_header(pagination_info: Dict[str, int]) -> None:
+    """
+    Render the page header with pagination information.
     
-    col1, col2 = st.columns([3, 1])
-    with col1:
-        if pagination_info["total_pages"] > 0:
-            st.header(f"Showing events {start_idx + 1}–{end_idx} of {num_total_events}")
-        else:
-            st.header("No events found")
+    Displays comprehensive pagination information including current page,
+    total pages, and total events count. Provides pagination controls
+    for navigation between pages.
     
-    with col2:
-        new_page = render_pagination_controls(pagination_info)
-        if new_page is not None:
-            st.session_state['current_page'] = new_page
-            st.rerun()
+    Args:
+        pagination_info (Dict[str, int]): Pagination information
+        num_total_events (int): Total number of events
+    """
+    total_pages = pagination_info["total_pages"]
+    current_page = pagination_info["current_page"]
+    total_events = pagination_info["total_items"]
+    
+    st.markdown(f"# Total events: {total_events}")
+    
+    # Pagination controls
+    selected_page = render_pagination_controls(pagination_info)
+    if selected_page is not None and selected_page != current_page:
+        st.session_state['current_page'] = selected_page
+        st.rerun()
+
+
+def render_search_section(events: List[Dict], search_term: str = "", case_sensitive: bool = False) -> Tuple[str, bool, List[Dict]]:
+    """
+    Render the search section with input field.
+    
+    Creates a search interface for filtering events by title. Provides
+    real-time filtering and user feedback on search results.
+    
+    The search functionality includes:
+    - Text input for search terms
+    - Real-time filtering of events
+    - Search result statistics
+    - User feedback for no results
+    
+    Args:
+        events (List[Dict]): List of all events
+        search_term (str): Current search term
+        case_sensitive (bool): Whether search is case sensitive (always False now)
+        
+    Returns:
+        Tuple[str, bool, List[Dict]]: (new_search_term, new_case_sensitive, filtered_events)
+        
+    Example:
+        search_term, case_sensitive, filtered_events = render_search_section(events, "art")
+    """
+    
+    # Search input
+    new_search_term = st.text_input(
+        "Search by event title:",
+        value=search_term,
+        placeholder="Enter event title to search...",
+        help="Search for events by their title. Leave empty to show all events."
+    )
+    
+    # Always use case-insensitive search
+    new_case_sensitive = False
+    
+    # Filter events based on search
+    if new_search_term.strip():
+        filtered_events = filter_events_by_search(events, new_search_term, new_case_sensitive)
+        
+        # Show search results summary
+        st.info(f"🔍 Found {len(filtered_events)} event(s) matching '{new_search_term}'")
+        
+        if len(filtered_events) == 0:
+            st.warning("No events found matching your search criteria.")
+    else:
+        filtered_events = events
+    
+    return new_search_term, new_case_sensitive, filtered_events
 
 
 import json  # Import needed for the dynamic fields handling 

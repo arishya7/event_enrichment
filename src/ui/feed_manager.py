@@ -1,13 +1,51 @@
+"""
+Feed Manager for RSS/Atom Feed Management
+
+This module provides a comprehensive interface for managing RSS and Atom feeds
+in the Event JSON & Image Editor application. It includes XML validation,
+feed statistics analysis, and interactive feed management capabilities.
+
+"""
+
 import streamlit as st
 from pathlib import Path
 import xml.etree.ElementTree as ET
 import json
 
+# Load configuration from config file
 with open("config/config.json", 'r', encoding='utf-8') as f:
     config = json.loads(f.read())
 
 def validate_xml(xml_content):
-    """Validate if the provided content is valid XML with detailed error reporting."""
+    """
+    Validate if the provided content is valid XML with detailed error reporting.
+    
+    Performs comprehensive XML validation for RSS and Atom feeds, including:
+    - Basic XML syntax validation
+    - Feed type detection (RSS vs Atom)
+    - Common XML formatting issues
+    - Detailed error messages with line/column information
+    
+    The validation checks for:
+    - Proper XML declaration
+    - Valid XML syntax
+    - RSS or Atom root elements
+    - Leading whitespace issues
+    - Common parsing errors
+    
+    Args:
+        xml_content (str): XML content to validate
+        
+    Returns:
+        tuple: (is_valid, error_message) where is_valid is boolean
+        
+    Example:
+        is_valid, message = validate_xml(rss_content)
+        if is_valid:
+            print("Valid RSS feed")
+        else:
+            print(f"Invalid: {message}")
+    """
     if not xml_content or not xml_content.strip():
         return False, "No content provided"
     
@@ -48,7 +86,27 @@ def validate_xml(xml_content):
         return False, f"Validation Error: {str(e)}"
 
 def get_feed_stats(xml_content):
-    """Get basic statistics about the XML feed."""
+    """
+    Get basic statistics about the XML feed.
+    
+    Analyzes the XML content to determine feed type and count articles.
+    Supports both RSS and Atom feed formats with automatic detection.
+    
+    The function provides:
+    - Feed type identification (RSS or Atom)
+    - Article/entry count
+    - Basic feed structure analysis
+    
+    Args:
+        xml_content (str): XML feed content to analyze
+        
+    Returns:
+        str: Formatted statistics string with feed type and article count
+        
+    Example:
+        stats = get_feed_stats(rss_content)
+        # Returns: "📊 **Feed Type:** RSS | **Articles Found:** 25"
+    """
     try:
         root = ET.fromstring(xml_content)
         
@@ -71,6 +129,24 @@ def get_feed_stats(xml_content):
         return "📊 **Feed analysis not available**"
 
 def main():
+    """
+    Main feed manager interface.
+    
+    Provides a comprehensive Streamlit interface for managing RSS and Atom feeds.
+    The interface includes:
+    - Blog source selection
+    - XML feed input and validation
+    - Feed statistics display
+    - Feed storage and management
+    - Error handling and user feedback
+    
+    Features:
+    - Multi-blog support with sidebar selection
+    - Real-time XML validation
+    - Feed statistics analysis
+    - Temporary feed storage
+    - Interactive error reporting
+    """
     st.set_page_config(
         page_title="Feed Manager",
         page_icon="📰",

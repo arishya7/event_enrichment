@@ -1,5 +1,10 @@
 """
-Event management functions for the Event JSON & Image Editor application.
+Event Management System for Event JSON & Image Editor Application
+
+This module provides comprehensive event management functionality including CRUD operations,
+image handling, coordinate updates, and data persistence. The EventManager class serves
+as the central interface for all event-related operations.
+
 """
 
 import json
@@ -28,18 +33,78 @@ except (ImportError, ValueError, FileNotFoundError) as e:
 
 
 class EventManager:
-    """Handles event CRUD operations and image management."""
+    """
+    Handles event CRUD operations and image management.
+    
+    The EventManager class provides a comprehensive interface for managing events
+    and their associated images. It handles all aspects of event data including
+    creation, updating, deletion, and image management.
+    
+    Key Responsibilities:
+    - Event data persistence and file management
+    - Image upload, deletion, and metadata management
+    - Automatic coordinate updates via Google Places API
+    - Image indexing and sequential numbering
+    - File system operations with error handling
+    - Change tracking and success reporting
+    
+    Attributes:
+        events (List[Dict]): List of event dictionaries
+        file_path (Path): Path to the JSON file containing events
+        
+    Example:
+        manager = EventManager(events, Path("data/events.json"))
+        success, message = manager.update_event(0, updated_data)
+    """
     
     def __init__(self, events: List[Dict], file_path: Path):
+        """
+        Initialize EventManager with events and file path.
+        
+        Args:
+            events (List[Dict]): List of event dictionaries
+            file_path (Path): Path to JSON file for persistence
+        """
         self.events = events
         self.file_path = file_path
     
     def save_events(self) -> None:
-        """Save events to file."""
+        """
+        Save events to file.
+        
+        Persists the current state of events to the JSON file with proper
+        formatting and error handling.
+        """
         save_events_to_file(self.events, self.file_path)
     
     def update_event(self, event_idx: int, updated_data: Dict[str, Any]) -> Tuple[bool, str]:
-        """Update an event with new data."""
+        """
+        Update an event with new data.
+        
+        Updates an event with new data and handles coordinate updates when
+        the address changes. The function provides comprehensive error handling
+        and detailed success/failure reporting.
+        
+        The update process includes:
+        - Data validation and processing
+        - Automatic coordinate lookup for address changes
+        - File system operations for image management
+        - Change tracking and reporting
+        - Error handling and recovery
+        
+        Args:
+            event_idx (int): Index of the event to update
+            updated_data (Dict[str, Any]): New event data
+            
+        Returns:
+            Tuple[bool, str]: (success, message) indicating operation result
+            
+        Example:
+            success, message = manager.update_event(0, {
+                'title': 'Updated Event',
+                'full_address': '123 New Street, Singapore'
+            })
+        """
         if event_idx >= len(self.events):
             return False, "Event index out of range"
         
@@ -95,451 +160,492 @@ class EventManager:
             return False, f"Error updating event: {str(e)}"
     
     def delete_event(self, event_idx: int) -> Tuple[bool, str]:
-        """Delete an event and all its associated images."""
+        """
+        Delete an event and all its associated images.
+        
+        Removes an event from the events list and deletes all associated
+        image files from the file system. Provides comprehensive cleanup
+        and error handling.
+        
+        Args:
+            event_idx (int): Index of the event to delete
+            
+        Returns:
+            Tuple[bool, str]: (success, message) indicating operation result
+            
+        Example:
+            success, message = manager.delete_event(0)
+        """
         if event_idx >= len(self.events):
             return False, "Event index out of range"
         
         try:
             event = self.events[event_idx]
+            images = event.get('images', [])
             
-            # Delete all associated image files
-            for img_obj in event.get('images', []):
-                local_path = img_obj.get('local_path')
+            # Delete image files
+            for img in images:
+                local_path = img.get('local_path', '')
                 if local_path:
                     img_file = Path("data") / local_path
                     if img_file.exists():
                         img_file.unlink()
             
-            # Delete the event
-            self.events.pop(event_idx)
+            # Remove event from list
+            del self.events[event_idx]
             self.save_events()
             
-            return True, "Event and all images deleted successfully"
+            return True, f"✅ Event {event_idx + 1} and {len(images)} images deleted successfully!"
             
         except Exception as e:
             return False, f"Error deleting event: {str(e)}"
     
     def update_event_checked_status(self, event_idx: int, checked: bool) -> None:
-        """Update the checked status of an event."""
+        """
+        Update the checked status of an event.
+        
+        Args:
+            event_idx (int): Index of the event to update
+            checked (bool): New checked status
+        """
         if event_idx < len(self.events):
             self.events[event_idx]['checked'] = checked
             self.save_events()
     
     def add_image_to_event(self, event_idx: int, uploaded_file: Any, source_credit: str = "User Upload") -> Tuple[bool, str]:
-        """Add an image to an event."""
+        """
+        Add an uploaded image to an event.
+        
+        Processes an uploaded file and adds it to the event's image collection.
+        Handles file saving, metadata creation, and index management.
+        
+        The function performs:
+        - File validation and type checking
+        - Automatic filename generation
+        - File system operations
+        - Image metadata creation
+        - Index management and sorting
+        
+        Args:
+            event_idx (int): Index of the event to add image to
+            uploaded_file (Any): Streamlit uploaded file object
+            source_credit (str): Source credit for the image
+            
+        Returns:
+            Tuple[bool, str]: (success, message) indicating operation result
+            
+        Example:
+            success, message = manager.add_image_to_event(0, uploaded_file, "User Upload")
+        """
         if event_idx >= len(self.events):
             return False, "Event index out of range"
         
         try:
             event = self.events[event_idx]
-            images = event.get("images", [])
+            images = event.get('images', [])
             
+            # Check image count limit
             if len(images) >= MAX_IMAGES_PER_EVENT:
-                return False, f"Maximum of {MAX_IMAGES_PER_EVENT} images allowed per event"
+                return False, f"Maximum of {MAX_IMAGES_PER_EVENT} images allowed per event."
             
-            # Generate filename
-            img_index = get_next_available_image_index(images)
+            # Generate filename and index
             file_extension = Path(uploaded_file.name).suffix
-            final_filename = generate_image_filename(event, img_index, file_extension)
+            img_index = get_next_available_image_index(images)
+            filename = generate_image_filename(event, img_index, file_extension)
             
-            # Determine save directory
+            # Save file
             save_dir = self._get_save_directory(event_idx, images)
             save_dir.mkdir(parents=True, exist_ok=True)
             
-            # Save the file
-            save_path = save_dir / final_filename
-            save_path.write_bytes(uploaded_file.getbuffer())
+            file_path = save_dir / filename
+            with open(file_path, "wb") as f:
+                f.write(uploaded_file.getbuffer())
             
             # Create image object
-            new_img_obj = create_image_object(
-                local_path=str(save_path).replace("data\\", "").replace("data/", ""),
-                filename=final_filename,
-                source_credit=source_credit
-            )
+            local_path = str(file_path.relative_to(Path("data")))
+            img_obj = create_image_object(local_path, filename, "", source_credit)
             
-            # Add to event's images array
-            if "images" not in event:
-                event["images"] = []
-            event["images"].append(new_img_obj)
+            # Add to images list and sort
+            images.append(img_obj)
+            sort_images_by_index(images)
             
-            # Sort images by index
-            sort_images_by_index(event["images"])
-            
-            # Update and save
-            self.events[event_idx] = event
+            # Update event and save
+            event['images'] = images
             self.save_events()
             
-            return True, f"Successfully uploaded '{final_filename}'"
+            return True, f"✅ Image '{filename}' added to Event {event_idx + 1} successfully!"
             
         except Exception as e:
-            return False, f"Error uploading image: {str(e)}"
+            return False, f"Error adding image: {str(e)}"
     
     def delete_image_from_event(self, event_idx: int, img_idx: int) -> Tuple[bool, str]:
-        """Delete an image from an event."""
+        """
+        Delete an image from an event.
+        
+        Removes an image from the event's image collection and deletes
+        the associated file from the file system.
+        
+        Args:
+            event_idx (int): Index of the event
+            img_idx (int): Index of the image to delete
+            
+        Returns:
+            Tuple[bool, str]: (success, message) indicating operation result
+        """
         if event_idx >= len(self.events):
             return False, "Event index out of range"
         
         try:
             event = self.events[event_idx]
-            images = event.get("images", [])
+            images = event.get('images', [])
             
             if img_idx >= len(images):
                 return False, "Image index out of range"
             
+            # Get image info
             img_obj = images[img_idx]
+            filename = img_obj.get('filename', '')
             
-            # Delete the image file
-            local_path = img_obj.get("local_path")
+            # Delete file
+            local_path = img_obj.get('local_path', '')
             if local_path:
                 img_file = Path("data") / local_path
                 if img_file.exists():
                     img_file.unlink()
             
-            # Remove from array
-            images.pop(img_idx)
+            # Remove from images list
+            del images[img_idx]
             
-            # Renumber images sequentially
+            # Renumber remaining images
             self._renumber_images_sequentially(event, event_idx)
             
-            # Save changes to file
+            # Update event and save
+            event['images'] = images
             self.save_events()
             
-            return True, "Image deleted successfully"
+            return True, f"✅ Image '{filename}' deleted from Event {event_idx + 1} successfully!"
             
         except Exception as e:
             return False, f"Error deleting image: {str(e)}"
     
     def swap_with_thumbnail(self, event_idx: int, img_idx: int) -> Tuple[bool, str]:
-        """Swap the selected image with the current thumbnail (index 1)."""
+        """
+        Swap an image with the thumbnail (first image).
+        
+        Exchanges the positions of the specified image and the thumbnail,
+        updating both the data structure and file system.
+        
+        Args:
+            event_idx (int): Index of the event
+            img_idx (int): Index of the image to swap with thumbnail
+            
+        Returns:
+            Tuple[bool, str]: (success, message) indicating operation result
+        """
         if event_idx >= len(self.events):
             return False, "Event index out of range"
         
         try:
             event = self.events[event_idx]
-            images = event.get("images", [])
+            images = event.get('images', [])
             
-            if len(images) < 2 or img_idx >= len(images):
-                return False, "Cannot swap: insufficient images"
-            
-            # Get the current thumbnail and selected image
-            thumbnail_img = images[0]
-            selected_img = images[img_idx]
-            
-            # Extract filenames and indexes
-            thumbnail_filename = thumbnail_img.get('filename', '')
-            selected_filename = selected_img.get('filename', '')
-            
-            if not thumbnail_filename or not selected_filename:
-                return False, "Cannot swap: invalid filenames"
-            
-            # Extract indexes
-            thumbnail_index = extract_image_index(thumbnail_filename)
-            selected_index = extract_image_index(selected_filename)
-            
-            if thumbnail_index == 9999 or selected_index == 9999:
-                return False, "Cannot swap: invalid index numbers in filenames"
-            
-            # Generate new filenames with swapped indexes
-            thumbnail_stem = Path(thumbnail_filename).stem
-            selected_stem = Path(selected_filename).stem
-            thumbnail_ext = Path(thumbnail_filename).suffix
-            selected_ext = Path(selected_filename).suffix
-            
-            # Create base filenames
-            thumbnail_base = '_'.join(thumbnail_stem.split('_')[:-1])
-            selected_base = '_'.join(selected_stem.split('_')[:-1])
-            
-            # Create new filenames
-            new_thumbnail_filename = f"{selected_base}_{thumbnail_index}{selected_ext}"
-            new_selected_filename = f"{thumbnail_base}_{selected_index}{thumbnail_ext}"
-            
-            # Get directory path
-            thumbnail_local_path = thumbnail_img.get('local_path', '')
-            if not thumbnail_local_path:
-                return False, "Cannot swap: invalid local path"
-            
-            save_dir = Path("data") / Path(thumbnail_local_path).parent
-            
-            # Perform file swapping
-            self._swap_image_files(
-                save_dir, thumbnail_filename, selected_filename,
-                new_thumbnail_filename, new_selected_filename,
-                thumbnail_index, selected_index, thumbnail_ext, selected_ext
-            )
-            
-            # Update image objects
-            thumbnail_img['filename'] = new_thumbnail_filename
-            thumbnail_img['local_path'] = str(save_dir / new_thumbnail_filename).replace("data\\", "").replace("data/", "")
-            
-            selected_img['filename'] = new_selected_filename
-            selected_img['local_path'] = str(save_dir / new_selected_filename).replace("data\\", "").replace("data/", "")
-            
-            # Swap metadata (source_credit and original_url)
-            thumbnail_source_credit = thumbnail_img.get('source_credit', '')
-            thumbnail_original_url = thumbnail_img.get('original_url', '')
-            selected_source_credit = selected_img.get('source_credit', '')
-            selected_original_url = selected_img.get('original_url', '')
-            
-            thumbnail_img['source_credit'] = selected_source_credit
-            thumbnail_img['original_url'] = selected_original_url
-            selected_img['source_credit'] = thumbnail_source_credit
-            selected_img['original_url'] = thumbnail_original_url
-            
-            # Swap positions in array
-            images[0] = selected_img
-            images[img_idx] = thumbnail_img
-            
-            # Sort images by index
-            sort_images_by_index(images)
-            
-            # Update and save
-            event["images"] = images
-            self.events[event_idx] = event
-            self.save_events()
-            
-            return True, "Successfully made image the new thumbnail!"
-            
-        except Exception as e:
-            return False, f"Error swapping thumbnail: {str(e)}"
-    
-    def update_image_metadata(self, event_idx: int, img_idx: int, updated_metadata: Dict[str, Any]) -> Tuple[bool, str]:
-        """Update image metadata."""
-        if event_idx >= len(self.events):
-            return False, "Event index out of range"
-        
-        try:
-            event = self.events[event_idx]
-            images = event.get("images", [])
+            if len(images) < 2:
+                return False, "Need at least 2 images to perform swap."
             
             if img_idx >= len(images):
                 return False, "Image index out of range"
             
-            # Update the image metadata
-            images[img_idx].update(updated_metadata)
+            if img_idx == 0:
+                return False, "Image is already the thumbnail."
             
-            # Save changes
-            self.events[event_idx] = event
+            # Get image info
+            thumbnail = images[0]
+            selected_img = images[img_idx]
+            
+            # Get file paths
+            save_dir = self._get_save_directory(event_idx, images)
+            thumb_path = save_dir / thumbnail['filename']
+            selected_path = save_dir / selected_img['filename']
+            
+            if not thumb_path.exists() or not selected_path.exists():
+                return False, "One or both image files not found."
+            
+            # Get file extensions
+            thumb_ext = Path(thumbnail['filename']).suffix
+            selected_ext = Path(selected_img['filename']).suffix
+            
+            # Create temporary filenames
+            temp_thumb = f"temp_thumb_{img_idx}{thumb_ext}"
+            temp_selected = f"temp_selected_{img_idx}{selected_ext}"
+            
+            # Perform file swap
+            self._swap_image_files(
+                save_dir, thumbnail['filename'], selected_img['filename'],
+                temp_thumb, temp_selected, 0, img_idx,
+                thumb_ext, selected_ext
+            )
+            
+            # Update image objects
+            thumbnail['filename'] = temp_thumb
+            selected_img['filename'] = temp_selected
+            
+            # Swap positions in list
+            images[0], images[img_idx] = images[img_idx], images[0]
+            
+            # Update event and save
+            event['images'] = images
             self.save_events()
             
-            return True, f"Image {img_idx + 1} metadata saved!"
+            return True, f"✅ Successfully swapped image {img_idx + 1} with thumbnail!"
             
         except Exception as e:
-            return False, f"Error saving image metadata: {str(e)}"
+            return False, f"Error swapping images: {str(e)}"
+    
+    def update_image_metadata(self, event_idx: int, img_idx: int, updated_metadata: Dict[str, Any]) -> Tuple[bool, str]:
+        """
+        Update metadata for a specific image.
+        
+        Updates the metadata fields of an image object with new values.
+        Supports updating fields like filename, original_url, and source_credit.
+        
+        Args:
+            event_idx (int): Index of the event
+            img_idx (int): Index of the image to update
+            updated_metadata (Dict[str, Any]): New metadata values
+            
+        Returns:
+            Tuple[bool, str]: (success, message) indicating operation result
+        """
+        if event_idx >= len(self.events):
+            return False, "Event index out of range"
+        
+        try:
+            event = self.events[event_idx]
+            images = event.get('images', [])
+            
+            if img_idx >= len(images):
+                return False, "Image index out of range"
+            
+            # Update metadata
+            for key, value in updated_metadata.items():
+                if key in images[img_idx]:
+                    images[img_idx][key] = value
+            
+            # Update event and save
+            event['images'] = images
+            self.save_events()
+            
+            return True, f"✅ Image metadata updated successfully!"
+            
+        except Exception as e:
+            return False, f"Error updating image metadata: {str(e)}"
     
     def _build_updated_event_data(self, original_event: Dict, updated_data: Dict, latitude: float, longitude: float) -> Dict:
-        """Build updated event data in the correct order."""
-        updated_event_data = {}
+        """
+        Build updated event data from original and new data.
         
-        # Process form values
+        Processes form data and builds a complete updated event object,
+        handling different data types and validation.
+        
+        Args:
+            original_event (Dict): Original event data
+            updated_data (Dict): New form data
+            latitude (float): Updated latitude coordinate
+            longitude (float): Updated longitude coordinate
+            
+        Returns:
+            Dict: Complete updated event object
+        """
         def process_form_value(key: str, form_value: Any, original_value: Any) -> Any:
-            if isinstance(original_value, bool):
-                return form_value
+            """Process individual form values with type conversion."""
+            if key in ['price', 'min_age', 'max_age']:
+                try:
+                    return float(form_value) if form_value is not None else 0.0
+                except (ValueError, TypeError):
+                    return 0.0
+            elif key in ['is_free']:
+                return bool(form_value)
+            elif key in ['categories']:
+                return form_value if isinstance(form_value, list) else []
+            elif key in ['latitude', 'longitude']:
+                return float(form_value) if form_value is not None else 0.0
+            elif isinstance(original_value, bool):
+                return bool(form_value)
             elif isinstance(original_value, (int, float)):
-                return form_value
-            elif key == 'categories':
-                return form_value
-            elif key in ['start_datetime', 'end_datetime']:
-                return form_value
+                try:
+                    return float(form_value) if form_value is not None else 0.0
+                except (ValueError, TypeError):
+                    return 0.0
             elif isinstance(original_value, list):
                 try:
-                    return json.loads(form_value) if form_value.strip() else []
+                    if isinstance(form_value, str):
+                        return json.loads(form_value)
+                    return form_value if isinstance(form_value, list) else []
                 except json.JSONDecodeError:
-                    return original_value
+                    return []
             elif isinstance(original_value, dict):
                 try:
-                    return json.loads(form_value) if form_value.strip() else {}
+                    if isinstance(form_value, str):
+                        return json.loads(form_value)
+                    return form_value if isinstance(form_value, dict) else {}
                 except json.JSONDecodeError:
-                    return original_value
+                    return {}
             else:
-                return form_value if form_value != "" else None
+                return str(form_value) if form_value is not None else ""
         
-        # Build in correct order (same as original app.py)
-        field_order = [
-            'title', 'blurb', 'description', 'guid', 'activity_or_event', 'url',
-            'price_display', 'price', 'is_free', 'organiser', 'age_group_display',
-            'min_age', 'max_age', 'datetime_display', 'start_datetime', 'end_datetime',
-            'venue_name', 'categories', 'scraped_on', 'full_address', 'latitude', 'longitude'
-        ]
+        # Build updated event
+        updated_event = original_event.copy()
         
-        original_without_images = {k: v for k, v in original_event.items() if k != "images"}
+        # Process each field
+        for key, original_value in original_event.items():
+            if key == 'images':
+                continue  # Handle images separately
+            
+            if key in updated_data:
+                updated_event[key] = process_form_value(key, updated_data[key], original_value)
         
-        for field in field_order:
-            if field in updated_data:
-                updated_event_data[field] = process_form_value(field, updated_data[field], original_without_images.get(field))
-            elif field == 'latitude':
-                updated_event_data[field] = None if updated_data.get('full_address', '') == "" else latitude
-            elif field == 'longitude':
-                updated_event_data[field] = None if updated_data.get('full_address', '') == "" else longitude
-            else:
-                updated_event_data[field] = original_without_images.get(field)
+        # Update coordinates
+        updated_event['latitude'] = latitude
+        updated_event['longitude'] = longitude
         
-        # Add any remaining fields not in the standard order
-        for key, value in original_without_images.items():
-            if key not in updated_event_data:
-                if key in updated_data:
-                    updated_event_data[key] = process_form_value(key, updated_data[key], value)
-                else:
-                    updated_event_data[key] = value
-        
-        # Add images and checked status
-        updated_event_data["images"] = original_event.get("images", [])
-        updated_event_data['checked'] = original_event.get('checked', False)
-        
-        return updated_event_data
+        return updated_event
     
     def _build_changes_list(self, original_event: Dict, updated_event: Dict, coordinates_updated: bool) -> List[str]:
-        """Build a list of changes made to the event."""
-        changes_made = []
+        """
+        Build a list of changes made to the event.
         
-        for key, new_value in updated_event.items():
-            if key == "images":
+        Compares original and updated event data to identify and report
+        changes made during the update process.
+        
+        Args:
+            original_event (Dict): Original event data
+            updated_event (Dict): Updated event data
+            coordinates_updated (bool): Whether coordinates were updated
+            
+        Returns:
+            List[str]: List of change descriptions
+        """
+        changes = []
+        
+        # Check for field changes
+        for key in original_event:
+            if key == 'images':
                 continue
             
             original_value = original_event.get(key)
+            updated_value = updated_event.get(key)
             
-            # Special handling for datetime fields
-            if key in ['start_datetime', 'end_datetime']:
-                orig_normalized = original_value
-                new_normalized = new_value
-                
-                if orig_normalized and isinstance(orig_normalized, str):
-                    if '+' in orig_normalized:
-                        orig_normalized = orig_normalized.split('+')[0]
-                    elif orig_normalized.endswith('Z'):
-                        orig_normalized = orig_normalized[:-1]
-                
-                values_different = str(new_normalized) != str(orig_normalized)
-            elif key in ['latitude', 'longitude']:
-                orig_is_zero_or_null = (original_value == 0.0 or original_value == 0 or original_value is None)
-                new_is_zero_or_null = (new_value == 0.0 or new_value == 0 or new_value is None)
-                
-                if orig_is_zero_or_null and new_is_zero_or_null:
-                    values_different = False
+            if original_value != updated_value:
+                if key == 'title':
+                    changes.append(f"📝 Title updated")
+                elif key == 'organiser':
+                    changes.append(f"👤 Organiser updated")
+                elif key == 'description':
+                    changes.append(f"📄 Description updated")
+                elif key == 'url':
+                    changes.append(f"🔗 URL updated")
+                elif key == 'categories':
+                    changes.append(f"🏷️ Categories updated")
+                elif key == 'price':
+                    changes.append(f"💰 Price updated")
+                elif key == 'is_free':
+                    changes.append(f"🆓 Free status updated")
+                elif key == 'start_datetime' or key == 'end_datetime':
+                    changes.append(f"📅 Date/time updated")
+                elif key == 'venue_name':
+                    changes.append(f"🏢 Venue updated")
+                elif key == 'full_address':
+                    changes.append(f"📍 Address updated")
                 else:
-                    values_different = str(new_value) != str(original_value)
-            else:
-                values_different = str(new_value) != str(original_value)
-            
-            if values_different:
-                if key == 'latitude' and coordinates_updated:
-                    continue
-                elif key == 'longitude' and coordinates_updated:
-                    continue
-                else:
-                    field_name = key.replace('_', ' ').title()
-                    if isinstance(new_value, list):
-                        if len(str(new_value)) > 50:
-                            changes_made.append(f"📝 {field_name}: Updated")
-                        else:
-                            changes_made.append(f"📝 {field_name}: {new_value}")
-                    elif isinstance(new_value, bool):
-                        changes_made.append(f"📝 {field_name}: {'Yes' if new_value else 'No'}")
-                    elif len(str(new_value)) > 50:
-                        changes_made.append(f"📝 {field_name}: Updated")
-                    else:
-                        if key in ['latitude', 'longitude'] and new_value is None:
-                            changes_made.append(f"📝 {field_name}: NULL")
-                        else:
-                            changes_made.append(f"📝 {field_name}: {new_value}")
+                    changes.append(f"📝 {key} updated")
         
-        # Add coordinates update if address changed
+        # Add coordinate update message
         if coordinates_updated:
-            changes_made.append(f"🌍 Coordinates: {updated_event.get('latitude', 0):.6f}, {updated_event.get('longitude', 0):.6f}")
+            changes.append(f"🗺️ Coordinates updated via Google Places API")
         
-        return changes_made
+        return changes
     
     def _get_save_directory(self, event_idx: int, images: List[Dict]) -> Path:
-        """Get the directory to save images."""
-        save_dir = EVENTS_OUTPUT_DIR
+        """
+        Get the directory for saving event images.
         
-        # Try to use the same directory as existing images
-        if images and images[0].get("local_path"):
-            save_dir = Path("data") / Path(images[0]["local_path"]).parent
-        else:
-            # Check other events for directory structure
-            for other_event in self.events:
-                if other_event.get("images") and other_event["images"][0].get("local_path"):
-                    example_path = Path(other_event["images"][0]["local_path"])
-                    if len(example_path.parts) > 1:
-                        # Use the full parent path, not just the first part
-                        save_dir = Path("data") / example_path.parent
-                    break
+        Determines the appropriate directory for saving images based on
+        the event index and existing image structure.
         
-        return save_dir
+        Args:
+            event_idx (int): Index of the event
+            images (List[Dict]): List of existing images
+            
+        Returns:
+            Path: Directory path for saving images
+        """
+        if images:
+            # Use existing image path structure
+            first_img = images[0]
+            local_path = first_img.get('local_path', '')
+            if local_path:
+                return Path("data") / Path(local_path).parent
+        
+        # Create new directory structure
+        return EVENTS_OUTPUT_DIR / f"event_{event_idx + 1}" / "images" / "user_uploads"
     
     def _renumber_images_sequentially(self, event: Dict, event_idx: int) -> None:
-        """Renumber all images in the event sequentially starting from 1."""
-        images = event.get("images", [])
+        """
+        Renumber images sequentially after deletion.
+        
+        Updates image filenames to maintain sequential numbering
+        after an image is deleted from the collection.
+        
+        Args:
+            event (Dict): Event dictionary
+            event_idx (int): Index of the event
+        """
+        images = event.get('images', [])
         if not images:
             return
         
-        # Get event title for base filename
-        event_title = event.get('title', 'untitled_event')
-        base_filename = re.sub(r'[^a-zA-Z0-9]', '_', event_title)
+        save_dir = self._get_save_directory(event_idx, images)
         
-        # Get directory path
-        if images[0].get("local_path"):
-            save_dir = Path("data") / Path(images[0]["local_path"]).parent
-        else:
-            save_dir = EVENTS_OUTPUT_DIR
-        
-        # Rename files sequentially
-        temp_names = []
-        for i, img in enumerate(images):
+        for i, img in enumerate(images, 1):
             old_filename = img.get('filename', '')
             if not old_filename:
                 continue
             
+            # Generate new filename
             file_extension = Path(old_filename).suffix
-            new_index = i + 1
-            new_filename = f"{base_filename}_{new_index}{file_extension}"
-            temp_filename = f"temp_rename_{i}_{new_index}{file_extension}"
+            new_filename = generate_image_filename(event, i, file_extension)
             
-            temp_names.append({
-                'img': img,
-                'old_filename': old_filename,
-                'temp_filename': temp_filename,
-                'new_filename': new_filename
-            })
-        
-        # Two-pass renaming to avoid conflicts
-        for item in temp_names:
-            old_path = save_dir / item['old_filename']
-            temp_path = save_dir / item['temp_filename']
-            if temp_path.exists():
-                temp_path.unlink()  # Remove the temp file if it already exists
+            # Rename file
+            old_path = save_dir / old_filename
+            new_path = save_dir / new_filename
+            
             if old_path.exists():
-                old_path.rename(temp_path)
-        
-        for item in temp_names:
-            temp_path = save_dir / item['temp_filename']
-            new_path = save_dir / item['new_filename']
-            if temp_path.exists():
-                temp_path.rename(new_path)
-                item['img']['filename'] = item['new_filename']
-                item['img']['local_path'] = str(new_path).replace("data\\", "").replace("data/", "")
+                old_path.rename(new_path)
+            
+            # Update image object
+            img['filename'] = new_filename
+            img['local_path'] = str(new_path.relative_to(Path("data")))
     
     def _swap_image_files(self, save_dir: Path, old_thumb: str, old_selected: str, 
                          new_thumb: str, new_selected: str, thumb_idx: int, 
                          selected_idx: int, thumb_ext: str, selected_ext: str) -> None:
-        """Perform the actual file swapping operation."""
-        old_thumbnail_path = save_dir / old_thumb
-        old_selected_path = save_dir / old_selected
-        new_thumbnail_path = save_dir / new_thumb
-        new_selected_path = save_dir / new_selected
+        """
+        Swap image files in the file system.
         
-        # Use temporary names to avoid conflicts
-        temp_thumbnail_path = save_dir / f"temp_thumbnail_{thumb_idx}{thumb_ext}"
-        temp_selected_path = save_dir / f"temp_selected_{selected_idx}{selected_ext}"
+        Performs the actual file system operations to swap two image files,
+        using temporary files to ensure safe swapping.
         
-        # First pass: rename to temporary names
-        if old_thumbnail_path.exists():
-            old_thumbnail_path.rename(temp_thumbnail_path)
-        if old_selected_path.exists():
-            old_selected_path.rename(temp_selected_path)
-        
-        # Second pass: rename to final names
-        if temp_thumbnail_path.exists():
-            temp_thumbnail_path.rename(new_selected_path)
-        if temp_selected_path.exists():
-            temp_selected_path.rename(new_thumbnail_path) 
+        Args:
+            save_dir (Path): Directory containing the images
+            old_thumb (str): Original thumbnail filename
+            old_selected (str): Original selected image filename
+            new_thumb (str): New thumbnail filename
+            new_selected (str): New selected image filename
+            thumb_idx (int): Thumbnail index
+            selected_idx (int): Selected image index
+            thumb_ext (str): Thumbnail file extension
+            selected_ext (str): Selected image file extension
+        """
+        # Rename files to temporary names
+        (save_dir / old_thumb).rename(save_dir / new_thumb)
+        (save_dir / old_selected).rename(save_dir / new_selected) 

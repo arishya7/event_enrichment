@@ -24,7 +24,7 @@ from src.ui.helpers import (
 from src.ui.components import (
     render_aspect_ratio_selector, render_event_header, render_event_form,
     render_image_upload_section, render_success_message, render_page_header,
-    display_image_with_aspect_ratio
+    display_image_with_aspect_ratio, render_search_section
 )
 from src.ui.event_manager import EventManager
 
@@ -45,6 +45,12 @@ def initialize_session_state():
     
     if 'aspect_ratio' not in st.session_state:
         st.session_state['aspect_ratio'] = DEFAULT_ASPECT_RATIO
+    
+    if 'search_term' not in st.session_state:
+        st.session_state['search_term'] = ""
+    
+    if 'case_sensitive_search' not in st.session_state:
+        st.session_state['case_sensitive_search'] = False
 
 
 @st.dialog("Delete Event Confirmation")
@@ -361,8 +367,23 @@ def main():
         st.error(f"Failed to load events: {e}")
         st.stop()
     
-    # 4. Calculate pagination
-    total_events = len(events)
+    # 4. Search functionality
+    search_term = st.session_state.get('search_term', '')
+    case_sensitive = st.session_state.get('case_sensitive_search', False)
+    
+    new_search_term, new_case_sensitive, filtered_events = render_search_section(
+        events, search_term, case_sensitive
+    )
+    
+    # Update session state if search parameters changed
+    if new_search_term != search_term or new_case_sensitive != case_sensitive:
+        st.session_state['search_term'] = new_search_term
+        st.session_state['case_sensitive_search'] = new_case_sensitive
+        st.session_state['current_page'] = 0  # Reset to first page when searching
+        st.rerun()
+    
+    # 5. Calculate pagination for filtered events
+    total_events = len(filtered_events)
     events_per_page = st.session_state['events_per_page']
     current_page = st.session_state['current_page']
     
@@ -371,17 +392,18 @@ def main():
     # Update session state with corrected page
     st.session_state['current_page'] = pagination_info['current_page']
     
-    # 5. Display header with pagination
-    render_page_header(pagination_info, total_events)
+    # 6. Display header with pagination
+    render_page_header(pagination_info)
     
-    # 6. Display events for current page
+    # 7. Display events for current page
     start_idx = pagination_info['start_idx']
     end_idx = pagination_info['end_idx']
-    current_page_events = events[start_idx:end_idx]
+    current_page_events = filtered_events[start_idx:end_idx]
     
     for page_event_idx, event in enumerate(current_page_events):
         # Calculate actual event index in the full list
-        event_idx = start_idx + page_event_idx
+        # Find the original index of this event in the full events list
+        original_event_idx = events.index(event)
         
         # Event separator
         st.markdown(
@@ -400,34 +422,34 @@ def main():
         
         # Event header with checkbox and delete button
         current_checked = event.get('checked', False)
-        new_checked, delete_requested = render_event_header(event_idx, current_checked)
+        new_checked, delete_requested = render_event_header(original_event_idx, current_checked)
         
         # Update checked status if changed
         if new_checked != current_checked:
-            event_manager.update_event_checked_status(event_idx, new_checked)
+            event_manager.update_event_checked_status(original_event_idx, new_checked)
             st.rerun()
         
         # Handle delete request
         if delete_requested:
-            confirm_delete_event(event_manager, event_idx, event)
+            confirm_delete_event(event_manager, original_event_idx, event)
         
         # Show form and images only for unchecked events
         if not new_checked:
             # Event form
-            form_data = render_event_form(event, event_idx)
+            form_data = render_event_form(event, original_event_idx)
             if form_data:
-                success, message = event_manager.update_event(event_idx, form_data)
+                success, message = event_manager.update_event(original_event_idx, form_data)
                 if success:
-                    st.session_state[f'success_message_{event_idx}'] = message
+                    st.session_state[f'success_message_{original_event_idx}'] = message
                     st.rerun()
                 else:
                     st.error(f"❌ {message}")
             
             # Show success message
-            render_success_message(event_idx)
+            render_success_message(original_event_idx)
             
             # Image management section
-            render_image_section(event_manager, event, event_idx)
+            render_image_section(event_manager, event, original_event_idx)
 
 
 if __name__ == "__main__":
