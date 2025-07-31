@@ -1,9 +1,0 @@
-Metadata-Version: 2.4
-Name: web-scraping-refactor
-Version: 0.1
-License-File: LICENSE
-Requires-Dist: requests
-Requires-Dist: selenium
-Requires-Dist: cloudscraper
-Dynamic: license-file
-Dynamic: requires-dist
