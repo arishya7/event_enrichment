@@ -78,6 +78,7 @@ def main():
         elif args.function == 'cleanup':
             print("🧹 Starting cleanup process...")
             from src.utils.file_utils import cleanup_temp_folders
+            run = Run(timestamp="9_temp_folder")
             cleanup_temp_folders(run.feed_dir, run.articles_output_dir)
             print("✅ Cleanup completed!")
             

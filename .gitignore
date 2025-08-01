@@ -1,10 +1,6 @@
-# Ignore everything in data except data/feed
-/data/archive/
-/data/temp/
-/data/events_output/
-/data/evergreen/
-/data/non-evergreen/
-data/events.json
+# Ignore everything in data except data/guid.db
+/data/*
+!guid.db
 
 # Virtual environments
 venv/
