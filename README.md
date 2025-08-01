@@ -131,8 +131,10 @@ To run this project, you'll need to set up the following services and obtain API
   3. Enable the following APIs for your project:
      - **Generative AI API** (Vertex AI / Gemini)
      - **Google Places API**
-     - **Programmable Search API**
+     - **Programmable Search API** (Search this on google)
   4. Create an API key (from "APIs & Services > Credentials")
+  5. Ensure one key allows all services
+  6. Go to programmable search console, create search engine and copy the ID and paste for cx value.
 - **Variable**: `GOOGLE_API_KEY` (used for all GCP services)
 
 ### 2. AWS S3
@@ -147,7 +149,7 @@ Create `config/.env` with the following structure:
 ```bash
 # Google Cloud Platform (GCP) API Key (used for all GCP services)
 GOOGLE_API_KEY=your_gcp_api_key_here
-
+cx=your_search_engine_id
 # AWS S3 (required)
 AWS_ACCESS_KEY_ID=your_aws_access_key_here
 AWS_SECRET_ACCESS_KEY=your_aws_secret_key_here
