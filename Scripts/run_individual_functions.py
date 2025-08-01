@@ -19,27 +19,36 @@ def main():
     parser.add_argument('function', choices=['review', 'merge', 'upload', 'cleanup'], 
                        help='Function to run: review, merge, upload, or cleanup')
     parser.add_argument('--events-output', help='Path to events output directory (default: data/events_output)', default='data/events_output')
-    parser.add_argument('--merged-file', help='Path to merged events file (for upload function)')
+    parser.add_argument('--merged-filepath', help='Path to merged events file (for upload function)')
+    parser.add_argument('--folder-name', help='Folder name to use as timestamp (for review and merge functions)')
     
     args = parser.parse_args()
     
-    # Create Run instance
-    run = Run(timestamp="xxxxxxTxxxxxx")
-    
     try:
         if args.function == 'review':
-            print(f"🔍 Starting event review process in {args.events_output}...")
+            # Use folder_name as timestamp for review function
+            if not args.folder_name:
+                print("❌ Error: --folder-name is required for review function")
+                print("Usage: python run_individual_functions.py review --folder-name <folder_name>")
+                sys.exit(1)
+            
+            run = Run(timestamp=args.folder_name)
+            print(f"🔍 Starting event review process in {args.events_output} for folder: {args.folder_name}")
             run.handle_events_review(Path(args.events_output))
             print("✅ Event review completed!")
             
         elif args.function == 'merge':
-            print("🔄 Starting event merge process...")
+            # Use folder_name as timestamp for merge function
+            if not args.folder_name:
+                print("❌ Error: --folder-name is required for merge function")
+                print("Usage: python run_individual_functions.py merge --folder-name <folder_name>")
+                sys.exit(1)
+            
+            run = Run(timestamp=args.folder_name)
+            print(f"🔄 Starting event merge process for folder: {args.folder_name}")
             merged_file = run.merge_events()
             if merged_file:
                 print(f"✅ Events merged successfully: {merged_file}")
-                # Save the merged file path for later use
-                with open('.last_merged_file', 'w') as f:
-                    f.write(str(merged_file))
             else:
                 print("❌ Event merge cancelled or failed")
                 
@@ -48,17 +57,19 @@ def main():
             merged_file_path = None
             
             # Check if merged file path was provided
-            if args.merged_file:
-                merged_file_path = Path(args.merged_file)
+            if args.merged_filepath:
+                merged_file_path = Path(args.merged_filepath)
             else:
-                # Try to get the last merged file
-                try:
-                    with open('.last_merged_file', 'r') as f:
-                        merged_file_path = Path(f.read().strip())
-                except FileNotFoundError:
-                    print("⚠️ No merged file found. Run merge first or provide --merged-file")
+                print("⚠️ No merged file specified. Please provide --merged-filepath argument")
+                print("Usage: python run_individual_functions.py upload --merged-filepath <path_to_merged_file>")
+                sys.exit(1)
             
             if merged_file_path and merged_file_path.exists():
+                # Extract folder name from the merged file path
+                # Get the immediate parent directory name
+                folder_name = merged_file_path.parent.name
+                print(f"📁 Extracted folder name: {folder_name}")
+                run = Run(timestamp=folder_name)
                 run.upload_to_s3(merged_file_path)
                 print("✅ S3 upload completed!")
             else:

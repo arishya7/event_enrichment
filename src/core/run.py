@@ -128,6 +128,7 @@ class Run:
                 
                 # Extract events from article using AI
                 article_obj.events = article_obj.extract_events()
+        
                 
                 if article_obj.events:
                     formatter.print_level2(f"✨ Found! Number of events: {len(article_obj.events)}")
@@ -214,15 +215,15 @@ class Run:
                 
                 print("│ 🚀 Starting Streamlit app...")
                 
-                # Launch Streamlit using venv_main Python environment
+                # Launch Streamlit using venv Python environment
                 if sys.platform == "win32":
-                    # On Windows, use venv_main Python executable
-                    venv_python = Path.cwd() / "venv_main" / "Scripts" / "python.exe"
+                    # On Windows, use venv Python executable
+                    venv_python = Path.cwd() / "venv" / "Scripts" / "python.exe"
                     cmd = f'"{venv_python}" -m streamlit run src/ui/main_app.py --server.headless=false -- --events-output "{events_dir}"'
                     process = subprocess.Popen(cmd, shell=True, cwd=current_dir)
                 else:
-                    # On Unix-like systems, use venv_main Python executable
-                    venv_python = Path.cwd() / "venv_main" / "bin" / "python"
+                    # On Unix-like systems, use venv Python executable
+                    venv_python = Path.cwd() / "venv" / "bin" / "python"
                     cmd = [str(venv_python), "-m", "streamlit", "run", "src/ui/main_app.py", "--server.headless=false", "--", "--events-output", str(events_dir)]
                     process = subprocess.Popen(cmd, cwd=current_dir)
                 

@@ -374,20 +374,27 @@ class EventManager:
             thumb_ext = Path(thumbnail['filename']).suffix
             selected_ext = Path(selected_img['filename']).suffix
             
-            # Create temporary filenames
-            temp_thumb = f"temp_thumb_{img_idx}{thumb_ext}"
-            temp_selected = f"temp_selected_{img_idx}{selected_ext}"
-            
             # Perform file swap
             self._swap_image_files(
                 save_dir, thumbnail['filename'], selected_img['filename'],
-                temp_thumb, temp_selected, 0, img_idx,
+                selected_img['filename'], thumbnail['filename'], 0, img_idx,
                 thumb_ext, selected_ext
             )
             
-            # Update image objects
-            thumbnail['filename'] = temp_thumb
-            selected_img['filename'] = temp_selected
+            # Store original values before swapping
+            original_thumb_filename = thumbnail['filename']
+            original_thumb_local_path = thumbnail['local_path']
+            original_selected_filename = selected_img['filename']
+            original_selected_local_path = selected_img['local_path']
+            
+            # Update image objects with swapped filenames and local_paths
+            # The thumbnail (index 0) now has the selected image's filename and path
+            thumbnail['filename'] = original_selected_filename
+            thumbnail['local_path'] = original_selected_local_path
+            
+            # The selected image now has the thumbnail's original filename and path
+            selected_img['filename'] = original_thumb_filename
+            selected_img['local_path'] = original_thumb_local_path
             
             # Swap positions in list
             images[0], images[img_idx] = images[img_idx], images[0]
@@ -646,6 +653,14 @@ class EventManager:
             thumb_ext (str): Thumbnail file extension
             selected_ext (str): Selected image file extension
         """
-        # Rename files to temporary names
-        (save_dir / old_thumb).rename(save_dir / new_thumb)
-        (save_dir / old_selected).rename(save_dir / new_selected) 
+        # Create unique temporary filenames to avoid conflicts
+        temp_thumb = f"temp_thumb_{thumb_idx}_{selected_idx}{thumb_ext}"
+        temp_selected = f"temp_selected_{thumb_idx}_{selected_idx}{selected_ext}"
+        
+        # Step 1: Rename files to temporary names
+        (save_dir / old_thumb).rename(save_dir / temp_thumb)
+        (save_dir / old_selected).rename(save_dir / temp_selected)
+        
+        # Step 2: Rename temporary files to their final swapped positions
+        (save_dir / temp_thumb).rename(save_dir / new_thumb)
+        (save_dir / temp_selected).rename(save_dir / new_selected) 

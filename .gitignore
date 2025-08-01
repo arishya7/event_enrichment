@@ -3,10 +3,11 @@
 /data/temp/
 /data/events_output/
 /data/evergreen/
+/data/non-evergreen/
 data/events.json
 
 # Virtual environments
-venv_main/
+venv/
 .env
 
 # Python cache and compiled files

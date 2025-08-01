@@ -5,19 +5,6 @@ This module defines all application constants, configuration settings, and defau
 used throughout the UI components. It includes event schema definitions, UI configuration,
 file paths, and form field specifications.
 
-The constants are organized into several categories:
-- Event Schema: Categories and field definitions from JSON schema
-- Application Limits: Maximum values and constraints
-- File Paths: Directory structure and file locations
-- UI Configuration: Streamlit page settings and display options
-- Form Fields: Field specifications for event editing forms
-- Image Settings: Display parameters and supported formats
-
-Configuration Sources:
-- Event schema loaded from config/event_schema.json
-- Application defaults for limits and display options
-- File system paths for data storage and retrieval
-
 """
 
 import json
@@ -29,8 +16,7 @@ def load_event_schema():
     
     Reads the event schema JSON file to extract available categories,
     field definitions, and validation rules for the application.
-    
-    Returns:
+     Returns:
         dict: Event schema containing field definitions and constraints
         
     Raises:

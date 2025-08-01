@@ -94,7 +94,7 @@ cd web-scraping
 ```bash
 # For main processing
 python -m venv venv
-venv_\Scripts\activate
+venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
@@ -171,38 +171,41 @@ python -m src.services.aws_s3
 
 ## Running Individual Functions with Scripts
 
-You can run individual functions (review, merge, upload, cleanup) using the same input format for window:
-
-- **Windows Batch (.bat)**
+You can run individual functions (review, merge, upload, cleanup) using the Python script:
 
 **Usage:**
 ```bash
-# General format for all scripts
-<run_script> <function> <timestamp> [options]
+# General format
+python Scripts/run_individual_functions.py <function> [options]
 ```
 Where:
-- `<run_script>` is one of:
-  - `Script/run_functions.bat` (Windows Batch)
-  - `Script/run_functions.ps1` (PowerShell)
-  - `Script/run_functions.sh`  (Shell/Bash)
-- `<function>` is one of: `review`, `merge`, `upload`, `cleanup`
-- `<timestamp>` is the run timestamp (e.g., `20250715_103130`)
-- `[options]` are additional options, such as `--merged-file <path>` for upload
+- `<function>` is one of: 
+   - `review` 
+   - `merge`
+   - `upload`
+   - `cleanup`
+- `[options]` are additional options
 
 **Examples:**
 ```bash
-# Launch event review interface
-Script/run_functions.bat review YYYYMMDD_HHMMSS
+# Launch event review interface (requires --folder-name)
+python Scripts/run_individual_functions.py review --folder-name 20250715_103130
 
-# Merge events into a single file
-Script/run_functions.bat merge YYYYMMDD_HHMMSS
+# Merge events into a single file (requires --folder-name)
+python Scripts/run_individual_functions.py merge --folder-name 20250715_103130
+python Scripts/run_individual_functions.py merge --folder-name evergreen
 
-# Upload to AWS S3
-Script/run_functions.bat upload YYYYMMDD_HHMMSS --merged-file data/XXXX.json
+# Upload to AWS S3 (requires --merged-filepath)
+python Scripts/run_individual_functions.py upload --merged-filepath data/events_output/20250715_103130/merged_events.json
 
 # Clean up temporary files
-Script/run_functions.bat cleanup YYYYMMDD_HHMMSS
+python Scripts/run_individual_functions.py cleanup
 ```
+
+**Required Arguments:**
+- For `review` and `merge` functions: `--folder-name` is required
+- For `upload` function: `--merged-filepath` is required
+- For `cleanup` function: no additional arguments needed
 
 ## Directory Structure
 
