@@ -29,9 +29,24 @@ def load_event_schema():
 # Load schema and extract constants
 event_schema = load_event_schema()
 
-# Event Schema Constants
+### Event Schema Constants
 # Available categories for event classification (from schema)
 AVAILABLE_CATEGORIES = event_schema["items"]["properties"]["categories"]["items"]["enum"]
+AVAILABLE_CATEGORIES += [
+    "Arts & Culture",
+    "Dining",
+    "Performance",
+    "Festival",
+    "Exhibitions",
+    "Sport",
+    "overseas",
+    "Family",
+    "Occasion",
+    "Family",
+    "Exhibitions",
+    "Workshop",
+    "Adventure"
+] # Add on categories for UI to display (for the past ones)
 
 # Activity or event type options (from schema)
 ACTIVITY_OR_EVENT = event_schema["items"]["properties"]["activity_or_event"]['enum']

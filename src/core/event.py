@@ -167,7 +167,7 @@ class Event:
         if place:
             return (place['formattedAddress'], place['location']['latitude'], place['location']['longitude'])
         else:
-            return None
+            return ('','','')
 
 
     def get_images(self, output_dir: Optional[Path] = None) -> List[Dict[str, str]]:
