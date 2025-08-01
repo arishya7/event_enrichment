@@ -16,11 +16,9 @@ from src.core.run import Run
 
 def main():
     parser = argparse.ArgumentParser(description='Run individual functions from the Run class')
-    parser.add_argument('function', choices=['review', 'merge', 'upload', 'cleanup'], 
-                       help='Function to run: review, merge, upload, or cleanup')
-    parser.add_argument('--events-output', help='Path to events output directory (default: data/events_output)', default='data/events_output')
-    parser.add_argument('--merged-filepath', help='Path to merged events file (for upload function)')
-    parser.add_argument('--folder-name', help='Folder name to use as timestamp (for review and merge functions)')
+    parser.add_argument('function', choices=['review', 'merge', 'upload', 'cleanup', 'browse'], 
+                       help='Function to run: review, merge, upload, cleanup, or browse')
+    parser.add_argument('--folder-name', help='Folder name to use as timestamp (for review, merge, and upload functions)')
     
     args = parser.parse_args()
     
@@ -33,8 +31,8 @@ def main():
                 sys.exit(1)
             
             run = Run(timestamp=args.folder_name)
-            print(f"🔍 Starting event review process in {args.events_output} for folder: {args.folder_name}")
-            run.handle_events_review(Path(args.events_output))
+            print(f"🔍 Starting event review process for folder: {args.folder_name}")
+            run.handle_events_review(Path('data/events_output'))
             print("✅ Event review completed!")
             
         elif args.function == 'merge':
@@ -54,26 +52,17 @@ def main():
                 
         elif args.function == 'upload':
             print("☁️ Starting S3 upload process...")
-            merged_file_path = None
             
-            # Check if merged file path was provided
-            if args.merged_filepath:
-                merged_file_path = Path(args.merged_filepath)
-            else:
-                print("⚠️ No merged file specified. Please provide --merged-filepath argument")
-                print("Usage: python run_individual_functions.py upload --merged-filepath <path_to_merged_file>")
+            # Use folder_name as timestamp for upload function
+            if not args.folder_name:
+                print("❌ Error: --folder-name is required for upload function")
+                print("Usage: python run_individual_functions.py upload --folder-name <folder_name>")
                 sys.exit(1)
             
-            if merged_file_path and merged_file_path.exists():
-                # Extract folder name from the merged file path
-                # Get the immediate parent directory name
-                folder_name = merged_file_path.parent.name
-                print(f"📁 Extracted folder name: {folder_name}")
-                run = Run(timestamp=folder_name)
-                run.upload_to_s3(merged_file_path)
-                print("✅ S3 upload completed!")
-            else:
-                print("❌ Cannot upload: merged file not found")
+            run = Run(timestamp=args.folder_name)
+            print(f"📁 Using folder name: {args.folder_name}")
+            run.upload_to_s3(None)
+            print("✅ S3 upload completed!")
                 
         elif args.function == 'cleanup':
             print("🧹 Starting cleanup process...")
@@ -81,6 +70,13 @@ def main():
             run = Run(timestamp="9_temp_folder")
             cleanup_temp_folders(run.feed_dir, run.articles_output_dir)
             print("✅ Cleanup completed!")
+            
+        elif args.function == 'browse':
+            print("🌐 Starting S3 interactive browser...")
+            from src.services.aws_s3 import S3
+            s3 = S3()
+            s3.run_interactive()
+            print("✅ S3 browser session ended!")
             
     except KeyboardInterrupt:
         print("\n❌ Process interrupted by user")

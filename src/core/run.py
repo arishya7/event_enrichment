@@ -358,7 +358,7 @@ class Run:
                 
             formatter.print_section("AWS S3 Upload")
             formatter.print_info("Ready to upload files to AWS S3:")
-            formatter.print_item(f"📁 Timestamp directory: {self.timestamp_dir}")
+            formatter.print_item(f"📁 Folder directory: {self.timestamp_dir}")
             if merged_file_path and merged_file_path.exists():
                 formatter.print_item(f"📄 Merged events file: {merged_file_path.name}")
                 

@@ -44,8 +44,8 @@ config.event_schema = load_json_file(CONFIG_DIR / 'event_schema.json')
 
 # Load system instructions
 config.system_instructions = SimpleNamespace(
-    with_schema=load_text_file(CONFIG_DIR / 'sys_int_w_schema.txt'),
-    with_internet=load_text_file(CONFIG_DIR / 'sys_int_w_int.txt')
+    with_schema=load_text_file(CONFIG_DIR / 'system_instruction_w_schema.txt'),
+    with_internet=load_text_file(CONFIG_DIR / 'system_instruction_w_internet.txt')
 )
 # Load API key
 config.google_api_key = os.getenv("GOOGLE_API_KEY")

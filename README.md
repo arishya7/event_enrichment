@@ -29,7 +29,7 @@ The system currently scrapes **9 popular Singapore family blogs**:
 | **The Honeycombers** | https://thehoneycombers.com/singapore/feed/ |
 | **The New Age Parents** | https://thenewageparents.com/feed/ |
 | **The Smart Local** | https://thesmartlocal.com/feed/ |
-
+### Note: In the future, if you only care more about quality, focus on these three blogs: sassymama, the asian parent and bykido. The rest can don't scrape. With just these three blogs, you can curl with python WITHOUT needing javascript verifications (don't need to open the streamlit and copy and paste from the browser). The reason for 9 blogs is because BA team more quanitty over quality.
 ## Core Classes
 
 ### Core Classes (`src/core/`)
@@ -39,7 +39,7 @@ The system currently scrapes **9 popular Singapore family blogs**:
 - **`Event`** - Represents extracted family events with location, dates, and details
 
 ### Service Classes (`src/services/`)
-- **`S3Uploader`** - Handles AWS S3 file uploads and directory management
+- **`S3`** - Handles AWS S3 file uploads, directory management, and interactive browsing
 - **`Places`** - Integrates with Google Places API for location geocoding
 - **`GenerativeLanguage`** - Manages Google Gemini AI integration for event extraction
 - **`CustomSearch`** - Handles custom search functionality
@@ -116,7 +116,7 @@ pip install -r requirements.txt
 
 6. **Run the main pipeline:**
 ```bash
-python main.py
+python .\main.py
 ```
 
 ## Required API Keys & Services
@@ -163,57 +163,104 @@ To run the main scraping and processing pipeline:
 python main.py
 ```
 
-### Run the AWS S3 Service
-To use the AWS S3 service for uploading or managing files:
+### Run the AWS S3 Viewer without needing AWS account
+To view the AWS S3:
 ```bash
-python -m src.services.aws_s3
+python .\aws_viewer.py
+```
+
+### Interactive S3 Browser
+For an interactive S3 file browser experience:
+```bash
+# Using Python script
+python Scripts/run_individual_functions.py browse
+
+# Using Windows batch file
+run_functions.bat browse
 ```
 
 ## Running Individual Functions with Scripts
 
-You can run individual functions (review, merge, upload, cleanup) using the Python script:
+You can run individual functions using either the Python script or the Windows batch file:
 
-**Usage:**
+### Python Script Usage
 ```bash
 # General format
 python Scripts/run_individual_functions.py <function> [options]
 ```
-Where:
-- `<function>` is one of: 
-   - `review` 
-   - `merge`
-   - `upload`
-   - `cleanup`
-- `[options]` are additional options
 
-**Examples:**
+### Windows Batch File Usage
 ```bash
-# Launch event review interface (requires --folder-name)
-python Scripts/run_individual_functions.py review --folder-name 20250715_103130
+# General format
+Scripts\run_functions.bat <function> [folder_name]
+```
 
-# Merge events into a single file (requires --folder-name)
+### Available Functions
+- `review` - Launch event review/edit interface
+- `merge` - Merge events into a single file
+- `upload` - Upload files to AWS S3
+- `browse` - Interactive S3 file browser
+- `cleanup` - Clean up temporary files
+
+### Examples
+
+**Python Script:**
+```bash
+# Launch event review interface
+python Scripts/run_individual_functions.py review --folder-name 20250715_103130
+python Scripts/run_individual_functions.py review --folder-name evergreen
+
+# Merge events into a single file
 python Scripts/run_individual_functions.py merge --folder-name 20250715_103130
 python Scripts/run_individual_functions.py merge --folder-name evergreen
 
-# Upload to AWS S3 (requires --merged-filepath)
-python Scripts/run_individual_functions.py upload --merged-filepath data/events_output/20250715_103130/merged_events.json
+# Upload to AWS S3
+python Scripts/run_individual_functions.py upload --folder-name 20250715_103130
+python Scripts/run_individual_functions.py upload --folder-name evergreen
+
+# Interactive S3 browser
+python Scripts/run_individual_functions.py browse
 
 # Clean up temporary files
 python Scripts/run_individual_functions.py cleanup
 ```
 
-**Required Arguments:**
-- For `review` and `merge` functions: `--folder-name` is required
-- For `upload` function: `--merged-filepath` is required
-- For `cleanup` function: no additional arguments needed
+**Windows Batch File:**
+```bash
+# Launch event review interface
+run_functions.bat review 20250715_103130
+run_functions.bat review evergreen
+
+# Merge events into a single file
+run_functions.bat merge 20250715_103130
+run_functions.bat merge evergreen
+
+# Upload to AWS S3
+run_functions.bat upload 20250715_103130
+run_functions.bat upload evergreen
+
+# Interactive S3 browser
+run_functions.bat browse
+
+# Clean up temporary files
+run_functions.bat cleanup
+```
+
+### Required Arguments
+- **review, merge, upload**: Require a folder name (timestamp, evergreen, or non-evergreen)
+- **browse, cleanup**: No arguments required
 
 ## Directory Structure
 
 ```
-web-scraping-refactor/
+web-scraping/
 ├── data/                    # Data storage
-│   ├── events_output/       # Timestamped event outputs
-│   ├── temp/                # Temporary processing files
+│   ├── archive/             # All the data that has been pushed to s3
+│   ├── events_output/       # event outputs
+│   │   ├──<timestamp>/      # Weekly scraped data put here. After pushing to s3, put them into archive/events_output. The merged json put inside archive root folder.
+│   │   ├──evergreen/        # evergreen data. Consist ofr both outdoor and indoor playgrounds
+│   │   ├──non-evergreen/    # Non-evergreen data. Consist of dining, malls-related and attractions
+│   ├── temp/                # Temporary processing files. Can be deleted after each run.
 │   └── guid.db              # SQLite database
 ├── config/                  # Configuration files
 ├── src/                     # Source code
@@ -221,7 +268,7 @@ web-scraping-refactor/
 │   ├── services/            # External service integrations
 │   ├── ui/                  # Web interface components
 │   └── utils/               # Utility functions
-├── Script/                  # Platform-specific scripts
+├── Scripts/                 # Platform-specific scripts
 └── requirements.txt         # Dependencies
 ```
 
