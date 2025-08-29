@@ -1,0 +1,4 @@
+# Requirements for Playwright testing
+playwright>=1.40.0
+asyncio
+pathlib 
