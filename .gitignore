@@ -8,3 +8,13 @@ venv/
 
 # Python cache and compiled files
 __pycache__
+
+# Secret files and credentials (NEVER commit these!)
+google_key.json
+*client_secret*.json
+*.json
+!package.json
+!package-lock.json
+!tsconfig.json
+!event_schema.json
+!districts.geojson
