@@ -25,7 +25,12 @@ from src.ui.helpers import (
 
 import os
 from PIL import Image, UnidentifiedImageError
-
+MIN_DATE = date(1970, 1, 1)
+MAX_DATE = date(2099, 12, 31)
+def clamp_date(d):
+    if not d: 
+        return date.today()
+    return min(MAX_DATE, max(MIN_DATE,d))
 
 def display_image_with_aspect_ratio(image_path: str, aspect_ratio: str = "Original", base_width: int = IMAGE_DISPLAY_BASE_WIDTH) -> None:
     """
@@ -50,6 +55,28 @@ def display_image_with_aspect_ratio(image_path: str, aspect_ratio: str = "Origin
     Example:
         display_image_with_aspect_ratio("event_image.jpg", "16:9", 800)
     """
+    # Check if file exists first
+    img_path = Path(image_path)
+    if not img_path.exists():
+        st.warning(f"Image file not found: {image_path}")
+        return
+    
+    # Validate that the file is actually a valid image
+    try:
+        from PIL import Image
+        # Try to open and verify the image
+        # Note: verify() closes the file, so we need to reopen after verification
+        with open(img_path, "rb") as f:
+            img = Image.open(f)
+            img.verify()  # Verify it's a valid image (this closes the file)
+        # Reopen for actual use (verify closes the file)
+        with open(img_path, "rb") as f:
+            Image.open(f)  # Just check we can open it again
+    except Exception as img_error:
+        st.warning(f"⚠️ Invalid or corrupted image file: {img_path.name}")
+        st.info(f"💡 The file exists but cannot be read as an image. Error: {str(img_error)}")
+        return
+    
     params = get_image_display_params(aspect_ratio, base_width)
     if params["css_style"]:
         # Use HTML/CSS for aspect ratio control
@@ -79,17 +106,40 @@ def display_image_with_aspect_ratio(image_path: str, aspect_ratio: str = "Origin
             """
             st.markdown(html_content, unsafe_allow_html=True)
         except Exception as e:
-            st.warning(f"Cannot display image: {image_path} ({e})")
-            try:
-                st.image(image_path, width=params["width"], use_container_width=params["use_container_width"])
-            except (UnidentifiedImageError, FileNotFoundError, OSError):
-                pass  # Already handled above
+            error_msg = str(e)
+            if "MediaFileStorageError" in error_msg or "Bad filename" in error_msg:
+                st.warning(f"⚠️ Image file reference is invalid: {Path(image_path).name}")
+                st.info("💡 The image file may have been moved or deleted. Please update the image path.")
+            elif "BytesIO" in error_msg or "cannot identify image" in error_msg.lower():
+                st.warning(f"⚠️ Cannot read image file: {Path(image_path).name}")
+                st.info("💡 The image file may be corrupted or in an unsupported format. Try replacing the image file.")
+            else:
+                st.warning(f"Cannot display image: {image_path} ({error_msg})")
+            # Don't try fallback if we already know the image is invalid
+            if "BytesIO" not in error_msg and "cannot identify image" not in error_msg.lower():
+                try:
+                    st.image(image_path, width=params["width"], use_container_width=params["use_container_width"])
+                except Exception:
+                    pass  # Already handled above
     else:
         # Use regular st.image for original aspect ratio (no caption)
-        try:
-            st.image(image_path, width=params["width"], use_container_width=params["use_container_width"])
-        except (UnidentifiedImageError, FileNotFoundError, OSError) as e:
-            st.warning(f"Cannot display image: {image_path} ({e})")
+        # Check if file exists first
+        if not Path(image_path).exists():
+            st.warning(f"Image file not found: {image_path}")
+        else:
+            try:
+                st.image(image_path, width=params["width"], use_container_width=params["use_container_width"])
+            except Exception as e:
+                # Catch all exceptions including MediaFileStorageError
+                error_msg = str(e)
+                if "MediaFileStorageError" in error_msg or "Bad filename" in error_msg:
+                    st.warning(f"⚠️ Image file reference is invalid: {Path(image_path).name}")
+                    st.info("💡 The image file may have been moved or deleted. Please update the image path.")
+                elif "BytesIO" in error_msg or "cannot identify image" in error_msg.lower():
+                    st.warning(f"⚠️ Cannot read image file: {Path(image_path).name}")
+                    st.info("💡 The image file may be corrupted or in an unsupported format. Try replacing the image file using the 'Replace image file' option above.")
+                else:
+                    st.warning(f"Cannot display image: {image_path} ({error_msg})")
             
 def render_aspect_ratio_selector() -> str:
     """
@@ -214,7 +264,7 @@ def render_event_header(event_idx: int, is_checked: bool) -> Tuple[bool, bool]:
     return new_checked, delete_requested
 
 
-def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
+def render_event_form(event: Dict, unique_id: str) -> Optional[Dict[str, Any]]:
     """
     Render the event editing form and return form data.
     
@@ -231,23 +281,24 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
     
     Args:
         event (Dict): Event data dictionary
-        event_idx (int): Index of the event being edited
+        unique_id (str): Unique identifier for the event being edited
         
     Returns:
         Optional[Dict[str, Any]]: Form data if submitted, None otherwise
         
     Example:
-        form_data = render_event_form(event_data, 0)
+        form_data = render_event_form(event_data, "event_123")
         if form_data:
             # Process form submission
     """
+
     event_without_images = {k: v for k, v in event.items() if k != "images"}
     
-    with st.form(key=f"event_form_{event_idx}"):
+    with st.form(key=f"event_form_{unique_id}"):
         form_data = {}
         
-        # Track original full_address for coordinate updates
-        original_full_address = event_without_images.get('full_address', '')
+        # Track original address_display for coordinate updates
+        original_address_display = event_without_images.get('address_display', '')
         
         # First row: title, organiser, blurb
         col1, col2, col3 = st.columns([1, 1, 3])
@@ -255,19 +306,19 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
             form_data['title'] = st.text_input(
                 'title',
                 value=event_without_images.get('title', ''),
-                key=f'form_title_{event_idx}'
+                key=f'form_title_{unique_id}'
             )
         with col2:
             form_data['organiser'] = st.text_input(
                 'organiser',
                 value=event_without_images.get('organiser', ''),
-                key=f'form_organiser_{event_idx}'
+                key=f'form_organiser_{unique_id}'
             )
         with col3:
             form_data['blurb'] = st.text_input(
                 'blurb',
                 value=event_without_images.get('blurb', ''),
-                key=f'form_blurb_{event_idx}'
+                key=f'form_blurb_{unique_id}'
             )
         
         st.markdown("---")
@@ -281,7 +332,7 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
                 'description',
                 value=str(event_without_images.get('description', '')),
                 height=120,
-                key=f'form_description_{event_idx}',
+                key=f'form_description_{unique_id}',
                 label_visibility="collapsed"
             )
         
@@ -300,7 +351,7 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
             form_data['url'] = st.text_input(
                 "url",
                 value=url_value,
-                key=f'form_url_{event_idx}',
+                key=f'form_url_{unique_id}',
                 label_visibility="collapsed"
             )
         
@@ -315,17 +366,19 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
                 options=ACTIVITY_OR_EVENT,
                 index=ACTIVITY_OR_EVENT.index(current_value) if current_value in ACTIVITY_OR_EVENT else 0,
                 help="Event: time-specific or one-off. Activity: available year-round",
-                key=f"form_activity_or_event_{event_idx}",
+                key=f"form_activity_or_event_{unique_id}",
                 horizontal=True
             )
         with col2:
             current_categories = event_without_images.get('categories', [])
+            # Filter out categories that are not in the allowed options (only 5 allowed)
+            valid_categories = [cat for cat in current_categories if cat in AVAILABLE_CATEGORIES]
             form_data['categories'] = st.multiselect(
                 'categories',
                 options=AVAILABLE_CATEGORIES,
-                default=current_categories,
-                help="Select one or more categories for this event",
-                key=f"form_categories_{event_idx}"
+                default=valid_categories,
+                help="Select one or more categories. Only these 5 categories are allowed: Indoor Playground, Outdoor Playground, Attraction, Kids-friendly dining, Mall related",
+                key=f"form_categories_{unique_id}"
             )
         
         st.markdown("---")
@@ -333,17 +386,30 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
         # Fifth row: price_display_teaser price_display, price, is_free
         col1, col2, col3, col4 = st.columns([1, 1, 6, 4])
         with col1:
+            # Safely convert price string to float, handling currency symbols
+            price_value = event_without_images.get('price') or 0.0
+            if isinstance(price_value, str):
+                import re
+                # Remove currency symbols and non-numeric characters except decimal point
+                price_str = re.sub(r'[^\d.]', '', str(price_value))
+                try:
+                    price_value = float(price_str) if price_str else 0.0
+                except ValueError:
+                    price_value = 0.0
+            else:
+                price_value = float(price_value)
+            
             form_data['price'] = st.number_input(
                 'price',
-                value=event_without_images.get('price', 0.0),
-                key=f'form_price_{event_idx}'
+                value=price_value,
+                key=f'form_price_{unique_id}'
             )
         with col2:
             form_data['is_free'] = st.radio(
                 'is_free',
                 options=[True, False],
                 index=0 if event_without_images.get('is_free', False) else 1,
-                key=f'form_is_free_{event_idx}',
+                key=f'form_is_free_{unique_id}',
                 format_func=lambda x: 'Yes' if x else 'No',
                 horizontal=True
             )
@@ -351,13 +417,13 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
             form_data['price_display'] = st.text_input(
                 'price_display',
                 value=event_without_images.get('price_display', ''),
-                key=f'form_price_display_{event_idx}'
+                key=f'form_price_display_{unique_id}'
             )
         with col4:
             form_data['price_display_teaser'] = st.text_input(
                 'price_display_teaser',
                 value=event_without_images.get('price_display_teaser', ''),
-                key=f'form_price_display_teaser_{event_idx}'
+                key=f'form_price_display_teaser_{unique_id}'
             )
         
         st.markdown("---")
@@ -367,20 +433,20 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
         with col1:
             form_data['min_age'] = st.number_input(
                 'min_age',
-                value=float(event_without_images.get('min_age', 0.0)),
-                key=f"form_min_age_{event_idx}"
+                value=float(event_without_images.get('min_age') or 0.0),
+                key=f"form_min_age_{unique_id}"
             )
         with col2:
             form_data['max_age'] = st.number_input(
                 'max_age',
-                value=float(event_without_images.get('max_age', 0.0)),
-                key=f"form_max_age_{event_idx}"
+                value=float(event_without_images.get('max_age') or 0.0),
+                key=f"form_max_age_{unique_id}"
             )
         with col3:
             form_data['age_group_display'] = st.text_input(
                 'age_group_display',
                 value=event_without_images.get('age_group_display', ''),
-                key=f'form_age_group_display_{event_idx}'
+                key=f'form_age_group_display_{unique_id}'
             )
         
         st.markdown("---")
@@ -395,14 +461,16 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
             with col1_:
                 start_selected_date = st.date_input(
                     "start_datetime",
-                    value=parsed_date if parsed_date else date.today(),
-                    key=f"form_start_datetime_date_{event_idx}"
+                    value=clamp_date(parsed_date),
+                    min_value=MIN_DATE,
+                    max_value=MAX_DATE,
+                    key=f"form_start_datetime_date_{unique_id}"
                 )
             with col2_:
                 start_selected_time = st.time_input(
                     "start_time",
                     value=parsed_time if parsed_time else time(9, 0),
-                    key=f"form_start_datetime_time_{event_idx}",
+                    key=f"form_start_datetime_time_{unique_id}",
                     label_visibility='hidden'
                 )
         
@@ -414,15 +482,16 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
             with col1_:
                 end_selected_date = st.date_input(
                     "end_datetime",
-                    value=parsed_end_date if parsed_end_date else date.today(),
-                    key=f"form_end_datetime_date_{event_idx}"
+                    value=clamp_date(parsed_end_date),
+                    min_value=MIN_DATE,
+                    max_value=MAX_DATE,
+                    key=f"form_end_datetime_date_{unique_id}"
                 )
-
             with col2_:
                 end_selected_time = st.time_input(
                     "end_time",
                     value=parsed_end_time if parsed_end_time else time(9, 0),
-                    key=f"form_end_datetime_time_{event_idx}",
+                    key=f"form_end_datetime_time_{unique_id}",
                     label_visibility='hidden'
                 )
         
@@ -430,26 +499,26 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
             form_data['datetime_display'] = st.text_input(
                 'datetime_display',
                 value=event_without_images.get('datetime_display', ''),
-                key=f'form_datetime_display_{event_idx}'
+                key=f'form_datetime_display_{unique_id}'
             )
 
         with col4:
             form_data['datetime_display_teaser'] = st.text_input(
                 'datetime_display_teaser',
                 value=event_without_images.get('datetime_display_teaser',''),
-                key=f'form_datetime_display_teaser_{event_idx}'
+                key=f'form_datetime_display_teaser_{unique_id}'
                 
             )
         
         st.markdown("---")
         
-        # Eighth row: venue_name, full_address, latitude, longitude
+        # Eighth row: venue_name, address_display, latitude, longitude
         latitude = event_without_images.get('latitude', 0.0)
         longitude = event_without_images.get('longitude', 0.0)
         
         # Display "NULL" for latitude/longitude if they are 0 or null
-        latitude_display = "NULL" if (latitude == 0.0 or latitude == 0 or latitude is None) else f"{latitude:.6f}"
-        longitude_display = "NULL" if (longitude == 0.0 or longitude == 0 or longitude is None) else f"{longitude:.6f}"
+        latitude_display = "NULL" if latitude in (0, 0.0, None, "") else f"{latitude:.6f}"
+        longitude_display = "NULL" if longitude in (0, 0.0, None, "") else f"{longitude:.6f}"
         
         col1, col2, col3 = st.columns([1, 1, 7])
         with col1:
@@ -462,14 +531,14 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
                 form_data['venue_name'] = st.text_input(
                     'venue_name',
                     value=event_without_images.get('venue_name', ''),
-                    key=f"form_venue_name_{event_idx}"
+                    key=f"form_venue_name_{unique_id}"
                 )
             with col3b:
-                form_data['full_address'] = st.text_input(
-                    'full_address',
-                    value=event_without_images.get('full_address', ''),
+                form_data['address_display'] = st.text_input(
+                    'address_display',
+                    value=event_without_images.get('address_display', ''),
                     help="Changing this address will automatically update longitude and latitude.",
-                    key=f"form_full_address_{event_idx}"
+                    key=f"form_address_display_{unique_id}"
                 )
         
         # Handle dynamic fields
@@ -482,7 +551,7 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
                     key,
                     options=[True, False],
                     index=0 if value else 1,
-                    key=f"form_{key}_{event_idx}",
+                    key=f"form_{key}_{unique_id}",
                     format_func=lambda x: 'Yes' if x else 'No',
                     horizontal=True,
                     disabled=key in DISABLED_FIELDS
@@ -491,7 +560,7 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
                 form_data[key] = st.number_input(
                     key,
                     value=float(value) if value is not None else 0.0,
-                    key=f"form_{key}_{event_idx}",
+                    key=f"form_{key}_{unique_id}",
                     disabled=key in DISABLED_FIELDS
                 )
             elif isinstance(value, list):
@@ -501,7 +570,7 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
                     value=list_str,
                     height=80,
                     help="Edit as JSON array format",
-                    key=f"form_{key}_{event_idx}",
+                    key=f"form_{key}_{unique_id}",
                     disabled=key in DISABLED_FIELDS
                 )
             elif isinstance(value, dict):
@@ -511,22 +580,22 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
                     value=dict_str,
                     height=120,
                     help="Edit as JSON object format",
-                    key=f"form_{key}_{event_idx}",
+                    key=f"form_{key}_{unique_id}",
                     disabled=key in DISABLED_FIELDS
                 )
             else:
                 form_data[key] = st.text_input(
                     key,
                     value=str(value) if value is not None else "",
-                    key=f"form_{key}_{event_idx}",
+                    key=f"form_{key}_{unique_id}",
                     disabled=key in DISABLED_FIELDS
                 )
         
         # Handle datetime fields specially
-        start_date = st.session_state.get(f"form_start_datetime_date_{event_idx}")
-        start_time = st.session_state.get(f"form_start_datetime_time_{event_idx}")
-        end_date = st.session_state.get(f"form_end_datetime_date_{event_idx}")
-        end_time = st.session_state.get(f"form_end_datetime_time_{event_idx}")
+        start_date = st.session_state.get(f"form_start_datetime_date_{unique_id}")
+        start_time = st.session_state.get(f"form_start_datetime_time_{unique_id}")
+        end_date = st.session_state.get(f"form_end_datetime_date_{unique_id}")
+        end_time = st.session_state.get(f"form_end_datetime_time_{unique_id}")
         
         if start_date and start_time:
             form_data['start_datetime'] = combine_to_iso_datetime(start_date, start_time)
@@ -537,10 +606,12 @@ def render_event_form(event: Dict, event_idx: int) -> Optional[Dict[str, Any]]:
         form_submitted = st.form_submit_button("💾 Save Event Data", type="primary")
         
         if form_submitted:
-            form_data['original_full_address'] = original_full_address
+            form_data['original_address_display'] = original_address_display
             return form_data
-    
+
     return None
+    
+
 
 
 def render_image_upload_section(event_idx: int, current_image_count: int, key_suffix: str = "") -> Optional[Any]:
@@ -577,7 +648,7 @@ def render_image_upload_section(event_idx: int, current_image_count: int, key_su
     )
 
 
-def render_success_message(event_idx: int) -> None:
+def render_success_message(unique_id: str) -> None:
     """
     Render success message if it exists in session state.
     
@@ -585,9 +656,9 @@ def render_success_message(event_idx: int) -> None:
     Automatically clears the message after display to prevent repetition.
     
     Args:
-        event_idx (int): Index of the event for the message
+        unique_id (str): Unique identifier for the event for the message
     """
-    success_key = f'success_message_{event_idx}'
+    success_key = f'success_message_{unique_id}'
     
     if success_key in st.session_state:
         success_message = st.session_state[success_key]

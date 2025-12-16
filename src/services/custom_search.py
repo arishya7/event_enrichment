@@ -83,11 +83,14 @@ def search_valid_url(event_title: str, organiser: str = "") -> Optional[str]:
         url = search_valid_url("Summer Art Camp", "Creative Kids Studio")
         # Returns: "https://creativekidsstudio.com/summer-art-camp"
     """
-    api_key = os.getenv("GOOGLE_API_KEY")
-    cx = os.getenv("cx")
+    # Use config values (loaded from .env) - these are the source of truth
+    api_key = config.google_api_key
+    cx = config.cx
 
     if not api_key or not cx:
         print("Error: API Key or CX is missing for search_valid_url call.")
+        print(f"  API Key present: {bool(api_key)}")
+        print(f"  CX present: {bool(cx)}")
         return None
 
     # Build search query with available information
@@ -100,8 +103,8 @@ def search_valid_url(event_title: str, organiser: str = "") -> Optional[str]:
     
     try:
         params = {
-            "key": config.google_api_key, 
-            "cx": config.cx, 
+            "key": api_key, 
+            "cx": cx, 
             "q": search_query,
             "num": 10,  # Get more results to increase chances of finding valid URL
             "excludeTerms": EXCLUDE_SITES
@@ -112,6 +115,16 @@ def search_valid_url(event_title: str, organiser: str = "") -> Optional[str]:
         data = response.json()
         return data['items'][0]['link']
         
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 403:
+            print(f"│ │ │ [custom_search.search_valid_url] 403 Forbidden - API key issue:")
+            print(f"│ │ │   - Check if Custom Search API is enabled in Google Cloud Console")
+            print(f"│ │ │   - Verify API key has Custom Search API permissions")
+            print(f"│ │ │   - Check if daily quota (100 free queries) is exceeded")
+            print(f"│ │ │   - Ensure you're using a Google Cloud API key (not Gemini API key)")
+        else:
+            print(f"│ │ │ [custom_search.search_valid_url] HTTP Error {e.response.status_code}: {e}")
+        return None
     except Exception as e:
         print(f"│ │ │ [custom_search.search_valid_url] Search failed: {e}")
         return None
@@ -146,11 +159,14 @@ def search_images(query: str, num_results: int = 10, site_to_search: Optional[st
         # General web search
         images = search_images("singapore events", num_results=5)
     """
-    api_key = os.getenv("GOOGLE_API_KEY")
-    cx = os.getenv("cx")
+    # Use config values (loaded from .env)
+    api_key = config.google_api_key
+    cx = config.cx
 
     if not api_key or not cx:
         print("Error: API Key or CX is missing for search_images call.")
+        print(f"  API Key present: {bool(api_key)}")
+        print(f"  CX present: {bool(cx)}")
         return None
 
     found_urls = set()  # Use set to avoid duplicates
@@ -163,8 +179,8 @@ def search_images(query: str, num_results: int = 10, site_to_search: Optional[st
             netloc = urlparse(site_to_search).netloc
             if netloc:
                 params = {
-                    "key": config.google_api_key, 
-                    "cx": config.cx, 
+                    "key": api_key, 
+                    "cx": cx, 
                     "q": query,
                     "searchType": "image", 
                     "num": num_site_results,
@@ -185,8 +201,8 @@ def search_images(query: str, num_results: int = 10, site_to_search: Optional[st
     if num_general_results > 0:
         try:
             params = {
-                "key": config.google_api_key, 
-                "cx": config.cx, 
+                "key": api_key, 
+                "cx": cx, 
                 "q": query,
                 "searchType": "image", 
                 "num": num_general_results,

@@ -75,7 +75,23 @@ class EventManager:
         Persists the current state of events to the JSON file with proper
         formatting and error handling.
         """
-        save_events_to_file(self.events, self.file_path)
+        # Remove unique_id from events before saving to keep JSON clean
+        events_to_save = []
+        for event in self.events:
+            event_copy = event.copy()
+            event_copy.pop('_unique_id', None)  # Remove unique_id if present
+            events_to_save.append(event_copy)
+        
+        save_events_to_file(events_to_save, self.file_path)
+        
+        # Update session state cache if we're in a Streamlit context
+        try:
+            import streamlit as st
+            session_key = f"events_{self.file_path.name}_{self.file_path.stat().st_mtime}"
+            st.session_state[session_key] = self.events  # Keep unique_id in cache
+        except:
+            # Not in Streamlit context, ignore
+            pass
     
     def update_event(self, event_idx: int, updated_data: Dict[str, Any]) -> Tuple[bool, str]:
         """
@@ -102,7 +118,7 @@ class EventManager:
         Example:
             success, message = manager.update_event(0, {
                 'title': 'Updated Event',
-                'full_address': '123 New Street, Singapore'
+                'address_display': '123 New Street, Singapore'
             })
         """
         if event_idx >= len(self.events):
@@ -115,8 +131,8 @@ class EventManager:
             
             # Handle coordinate updates if address changed
             coordinates_updated = False
-            new_full_address = updated_data.get('full_address', '')
-            original_full_address = original_event.get('full_address', '')
+            new_address_display = updated_data.get('address_display', '')
+            original_address_display = original_event.get('address_display', '')
             
             latitude = event_without_images.get('latitude', 0.0)
             longitude = event_without_images.get('longitude', 0.0)
@@ -127,10 +143,10 @@ class EventManager:
                 longitude = 0.0
             
             
-            if (new_full_address != original_full_address and 
-                new_full_address and new_full_address.strip() and 
+            if (new_address_display != original_address_display and 
+                new_address_display and new_address_display.strip() and 
                 GOOGLE_PLACES_AVAILABLE):
-                new_longitude, new_latitude = get_coordinates_from_address(new_full_address)    
+                new_longitude, new_latitude = get_coordinates_from_address(new_address_display)    
                 if new_longitude is not None and new_latitude is not None:
                     longitude = new_longitude
                     latitude = new_latitude
@@ -305,27 +321,85 @@ class EventManager:
             # Get image info
             img_obj = images[img_idx]
             filename = img_obj.get('filename', '')
-            
-            # Delete file
             local_path = img_obj.get('local_path', '')
-            if local_path:
-                img_file = Path("data") / local_path
-                if img_file.exists():
-                    img_file.unlink()
+            deleted_file = False
             
-            # Remove from images list
-            del images[img_idx]
+            if local_path:
+                # Try the exact path from JSON
+                img_file = Path("data") / local_path
+                if img_file.exists() and img_file.is_file():
+                    try:
+                        img_file.unlink()
+                        print(f"✅ Deleted local file: {img_file}")
+                        deleted_file = True
+                    except Exception as file_error:
+                        print(f"⚠️  Warning: Could not delete local file {img_file}: {file_error}")
+                
+                # If exact path didn't work, try to find file by filename in the images directory
+                if not deleted_file and filename:
+                    # Extract images directory from local_path
+                    # local_path format: "events_output/Nov_12/images/filename.jpg"
+                    path_parts = Path(local_path).parts
+                    if len(path_parts) >= 2:
+                        # Try to find images directory
+                        images_dir = Path("data") / path_parts[0] / path_parts[1] / "images"
+                        if images_dir.exists():
+                            # Try exact filename match
+                            exact_match = images_dir / filename
+                            if exact_match.exists() and exact_match.is_file():
+                                try:
+                                    exact_match.unlink()
+                                    print(f"✅ Deleted local file (by filename): {exact_match}")
+                                    deleted_file = True
+                                except Exception as file_error:
+                                    print(f"⚠️  Warning: Could not delete file {exact_match}: {file_error}")
+                            
+                            # If still not found, try fuzzy match (find files with similar name)
+                            if not deleted_file:
+                                # Look for files that start with similar pattern
+                                base_name = Path(filename).stem
+                                # Try to match by event ID prefix or similar pattern
+                                for img_file in images_dir.glob("*.jpg"):
+                                    if base_name.lower() in img_file.stem.lower() or img_file.stem.lower() in base_name.lower():
+                                        try:
+                                            img_file.unlink()
+                                            print(f"✅ Deleted local file (fuzzy match): {img_file}")
+                                            deleted_file = True
+                                            break
+                                        except Exception as file_error:
+                                            print(f"⚠️  Warning: Could not delete file {img_file}: {file_error}")
+            
+            if not deleted_file and filename:
+                print(f"⚠️  Could not find file to delete: {filename} (local_path: {local_path})")
+            
+            # Remove from images list - modify in place
+            images.pop(img_idx)
             
             # Renumber remaining images
             self._renumber_images_sequentially(event, event_idx)
             
-            # Update event and save
+            # Ensure event dict is updated (should already be updated since images is a reference)
             event['images'] = images
-            self.save_events()
+            # Also update self.events to ensure it's synced
+            self.events[event_idx] = event
+            
+            # Force save and verify
+            try:
+                self.save_events()
+                # Verify the save worked by checking file was updated
+                import time
+                time.sleep(0.1)  # Small delay to ensure file write completes
+                print(f"✅ Saved events after deleting image {img_idx} from event {event_idx}")
+            except Exception as save_error:
+                print(f"❌ Error saving events: {save_error}")
+                return False, f"Image deleted but failed to save: {str(save_error)}"
             
             return True, f"✅ Image '{filename}' deleted from Event {event_idx + 1} successfully!"
             
         except Exception as e:
+            print(f"❌ Error in delete_image_from_event: {e}")
+            import traceback
+            traceback.print_exc()
             return False, f"Error deleting image: {str(e)}"
     
     def swap_with_thumbnail(self, event_idx: int, img_idx: int) -> Tuple[bool, str]:
@@ -561,7 +635,7 @@ class EventManager:
                     changes.append(f"📅 Date/time updated")
                 elif key == 'venue_name':
                     changes.append(f"🏢 Venue updated")
-                elif key == 'full_address':
+                elif key == 'address_display':
                     changes.append(f"📍 Address updated")
                 else:
                     changes.append(f"📝 {key} updated")
@@ -593,8 +667,9 @@ class EventManager:
             if local_path:
                 return Path("data") / Path(local_path).parent
         
-        # Create new directory structure
-        return EVENTS_OUTPUT_DIR / f"event_{event_idx + 1}" / "images" / "user_uploads"
+        # Create images folder in the same directory as the JSON file
+        json_dir = self.file_path.parent
+        return json_dir / "images" / "user_uploads"
     
     def _renumber_images_sequentially(self, event: Dict, event_idx: int) -> None:
         """

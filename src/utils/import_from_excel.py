@@ -14,9 +14,9 @@ def reconstruct_json_event(row):
     # Simple fields - only add if not empty
     simple_fields = [
         'title', 'blurb', 'description', 'guid', 'activity_or_event', 'url',
-        'price_display', 'price', 'is_free', 'organiser', 'age_group_display',
+        'price_display', 'price', 'min_price', 'max_price', 'is_free', 'organiser', 'age_group_display',
         'min_age', 'max_age', 'datetime_display', 'start_datetime', 'end_datetime',
-        'venue_name', 'scraped_on', 'full_address', 'latitude', 'longitude'
+        'venue_name', 'scraped_on', 'address_display', 'latitude', 'longitude'
     ]
     
     for field in simple_fields:

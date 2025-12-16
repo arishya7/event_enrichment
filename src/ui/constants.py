@@ -26,27 +26,32 @@ def load_event_schema():
     with open("config/event_schema.json", 'r', encoding='utf-8') as f:
         return json.load(f)
 
+def load_attraction_schema():
+    with open("data/events_output/non-evergreen/attractions.json", 'r', encoding='utf-8') as f:
+        data_load = json.load(f)
+        cat_data = []
+        for dl in data_load:
+            cat_data.extend(dl.get('categories', []))  # Add categories from each item
+        # Remove duplicates while preserving order
+        cat_data = list(dict.fromkeys(cat_data))
+    return cat_data
+
+
 # Load schema and extract constants
 event_schema = load_event_schema()
+attr_schema  = load_attraction_schema()
 
 ### Event Schema Constants
-# Available categories for event classification (from schema)
-AVAILABLE_CATEGORIES = event_schema["items"]["properties"]["categories"]["items"]["enum"]
-AVAILABLE_CATEGORIES += [
-    "Arts & Culture",
-    "Dining",
-    "Performance",
-    "Festival",
-    "Exhibitions",
-    "Sport",
-    "overseas",
-    "Family",
-    "Occasion",
-    "Family",
-    "Exhibitions",
-    "Workshop",
-    "Adventure"
-] # Add on categories for UI to display (for the past ones)
+# Available categories for event classification - ONLY these 5 are allowed
+AVAILABLE_CATEGORIES = [
+    "Indoor Playground",
+    "Outdoor Playground",
+    "Attraction",
+    "Kids-friendly dining",
+    "Mall related"
+]
+# Note: Old categories from schema are kept for backward compatibility when reading existing data,
+# but users can only select from the 5 allowed categories above
 
 # Activity or event type options (from schema)
 ACTIVITY_OR_EVENT = event_schema["items"]["properties"]["activity_or_event"]['enum']
@@ -88,7 +93,7 @@ SPECIAL_FIELDS = [
     'title', 'organiser', 'blurb', 'description', 'url',
     'activity_or_event', 'categories', 'price_display', 'price', 'is_free', 'price_display_teaser',
     'age_group_display', 'min_age', 'max_age', 'datetime_display', 'datetime_display_teaser',
-    'start_datetime', 'end_datetime', 'venue_name', 'full_address',
+    'start_datetime', 'end_datetime', 'venue_name', 'address_display',
     'latitude', 'longitude', 'checked'
 ]
 

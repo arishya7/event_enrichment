@@ -49,6 +49,28 @@ def download_image(image_urls: List[str], base_file_path: Path) -> List[Dict[str
     """
     downloaded_images = []
     success_index = 1  # Only increment for successful downloads
+
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:130.0) Gecko/20100101 Firefox/130.0",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Connection": "keep-alive",
+        "Sec-Fetch-Site": "cross-site",
+        "Sec-Fetch-Mode": "no-cors",
+        "Sec-Fetch-Dest": "image",
+        "Referer": "https://www.marinabaysands.com/",
+        "Upgrade-Insecure-Requests": "1",
+        "Pragma": "no-cache",
+        "Cache-Control": "no-cache"
+    }
+
+    session = requests.Session()
+    session.headers.update(headers)
+    
+    # Allowed image formats
+    ALLOWED_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.webp')
+    ALLOWED_CONTENT_TYPES = ('image/jpeg', 'image/jpg', 'image/png', 'image/webp')
     
     for image_url in image_urls:
         try:
@@ -56,8 +78,43 @@ def download_image(image_urls: List[str], base_file_path: Path) -> List[Dict[str
             if not urlparse(image_url).scheme in ('http', 'https'):
                 continue
 
-            response = requests.get(image_url, stream=True, timeout=20)
+            response = session.get(image_url, stream=True, timeout=20)
             response.raise_for_status()
+
+            # Determine file extension from URL
+            try:
+                parsed_url = urlparse(image_url)
+                url_path = Path(unquote(parsed_url.path))
+                extension = url_path.suffix.lower() if url_path.suffix else None
+            except:
+                extension = None
+            
+            # Check content-type header to determine format
+            content_type = response.headers.get('content-type', '')
+            ct_lower = content_type.lower().split(';')[0].strip()  # Remove charset, etc.
+            
+            # Determine final extension from content-type or URL
+            final_extension = None
+            if ct_lower in ALLOWED_CONTENT_TYPES:
+                # Map content-type to extension
+                if 'jpeg' in ct_lower or 'jpg' in ct_lower:
+                    final_extension = '.jpg'
+                elif 'png' in ct_lower:
+                    final_extension = '.png'
+                elif 'webp' in ct_lower:
+                    final_extension = '.webp'
+            elif extension and extension in ALLOWED_EXTENSIONS:
+                # Use extension from URL if it's allowed
+                final_extension = extension
+            else:
+                # Skip unsupported formats (SVG, GIF, BMP, etc.)
+                print(f"│ │ │ [files_utils.download_image] Skipping unsupported format: {image_url} (extension: {extension}, content-type: {ct_lower})")
+                continue
+            
+            # Skip if we still don't have a valid extension
+            if not final_extension or final_extension not in ALLOWED_EXTENSIONS:
+                print(f"│ │ │ [files_utils.download_image] Skipping unsupported format: {image_url} (extension: {extension}, content-type: {ct_lower})")
+                continue
 
             # Extract source credit from URL
             try:
@@ -68,30 +125,9 @@ def download_image(image_urls: List[str], base_file_path: Path) -> List[Dict[str
                 source_credit = ' '.join(word.capitalize() for word in re.split(r'[-_]', domain))
             except:
                 source_credit = "Unknown Source"
-
-            # Determine file extension from URL or content-type
-            try:
-                parsed_url = urlparse(image_url)
-                url_path = Path(unquote(parsed_url.path))
-                extension = url_path.suffix.lower() if url_path.suffix else '.jpg'
-            except:
-                extension = '.jpg'
             
-            # Check content-type header to refine extension
-            content_type = response.headers.get('content-type')
-            if content_type:
-                ct_lower = content_type.lower()
-                if 'jpeg' in ct_lower and extension != ".jpg": 
-                    extension = ".jpg"
-                elif 'png' in ct_lower and extension != ".png": 
-                    extension = ".png"
-                elif 'gif' in ct_lower and extension != ".gif": 
-                    extension = ".gif"
-                elif 'webp' in ct_lower and extension != ".webp": 
-                    extension = ".webp"
-            
-            # Create file path with success index
-            file_path = base_file_path.with_name(f"{base_file_path.name}_{success_index}").with_suffix(extension)
+            # Create file path with success index (use final_extension determined above)
+            file_path = base_file_path.with_name(f"{base_file_path.name}_{success_index}").with_suffix(final_extension)
             
             # Ensure directory exists
             file_path.parent.mkdir(parents=True, exist_ok=True)
@@ -324,3 +360,20 @@ def _selective_cleanup(temp_locations: list) -> None:
                 
     except ValueError:
         formatter.print_error("Invalid input format. Use numbers separated by commas.")
+
+def get_next_event_id(tracker_path: str = "data/event_id_tracker.txt") -> int:
+    """Read, increment, and return the next event ID from the tracker file."""
+    try:
+        with open(tracker_path, "r") as f:
+            curr = int(f.read().strip())
+    except (FileNotFoundError, ValueError):
+        curr = 431  # Start before first event
+    next_id = curr + 1
+    with open(tracker_path, "w") as f:
+        f.write(str(next_id))
+    return next_id
+
+def update_event_id_tracker(new_curr: int, tracker_path: str = "data/event_id_tracker.txt") -> None:
+    """Manually update the event id tracker (rarely needed)."""
+    with open(tracker_path, "w") as f:
+        f.write(str(new_curr))

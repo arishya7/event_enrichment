@@ -13,6 +13,9 @@
       "price_display_teaser",
       "price_display",
       "price",
+      "is_free",
+      "min_price",
+      "max_price",
       "age_group_display",
       "min_age",
       "max_age",
@@ -21,9 +24,14 @@
       "start_datetime",
       "end_datetime",
       "venue_name",
-      "categories"
+      "categories",
+      "images"
     ],
     "properties": {
+      "id": {
+        "type": "integer",
+        "description": "Unique event ID"
+      },
       "title": {
         "type": "string",
         "minLength": 40,
@@ -78,7 +86,19 @@
       },
       "price": {
         "type": "number",
-        "description": "If there are multiple prices, choose the LOWEST price. If the event has bpth free tier and paid options, USE the lowest price of paid option. Ensure that it is in Singapore Dollar currency."
+        "description": "If there are multiple prices, choose the LOWEST price. If the event has both free tier and paid options, USE the lowest price of paid option. Ensure that it is in Singapore Dollar currency."
+      },
+      "is_free": {
+        "type": "boolean",
+        "description": "Whether the event is free (true if price is 0, false otherwise)"
+      },
+      "min_price": {
+        "type": "number",
+        "description": "The minimum price for the event in Singapore Dollar currency. If free, use 0. If there are multiple price tiers, use the lowest price."
+      },
+      "max_price": {
+        "type": "number",
+        "description": "The maximum price for the event in Singapore Dollar currency. If there's only one price, this should equal min_price. If free, use 0."
       },
       "age_group_display": {
         "type": "string",
@@ -114,6 +134,18 @@
         "type": "string",
         "description": "The name of the venue of the event"
       },
+      "address_display": {
+        "type": "string",
+        "description": "The complete address of the venue. This is the only address field - capture all address information here."
+      },
+      "planning_area": {
+        "type": "string",
+        "description": "Singapore URA planning area for the venue"
+      },
+      "region": {
+        "type": "string",
+        "description": "Singapore URA region for the venue"
+      },
       "categories": {
         "type": "array",
         "description": "Event categories to must include at least one category",
@@ -128,6 +160,42 @@
             "Kids-friendly dining"
           ]
         }
+      },
+      "keyword_tag": {
+        "type": "string",
+        "description": "Identify relevant search keywords and phrases for the given content. Return 5-12 concise, user-searchable terms separated by commas (e.g., 'playground, kids, indoor, fun, activities')."
+      },
+      "label_tag": {
+        "type": "string",
+        "description": "User-editable label for custom annotations or manual tags",
+        "default": ""
+      },
+      "images": {
+        "type": "array",
+        "description": "Array of image objects for the event",
+        "items": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "description": "Direct image URL (.jpg/.jpeg/.png/.webp)"
+            },
+            "source_credit": {
+              "type": "string",
+              "description": "Organiser or venue name for image attribution"
+            },
+            "filename": {
+              "type": "string",
+              "description": "Short filename for the image"
+            },
+            "local_path": {
+              "type": "string",
+              "description": "Local path for the image"
+            }
+          },
+          "required": ["url", "source_credit", "filename","local_path"]
+        },
+        "default": []
       }
     }
   }

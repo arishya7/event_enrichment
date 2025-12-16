@@ -4,6 +4,12 @@ from typing import Tuple, Any, Union
 
 from src.utils.config import config
 from src.core import *
+from dotenv import load_dotenv
+import os
+import pymysql
+
+load_dotenv()
+db_password = os.getenv('DB_PASSWORD')
 
 def execute_query(query: str, params: Union[Tuple[Any, ...], Tuple] = ()) -> sqlite3.Cursor:
     """Execute a single database query.
@@ -56,3 +62,16 @@ def init_db() -> None:
         )
     """
     execute_query(create_table_sql)
+
+
+
+def get_db_connection():
+    conn = pymysql.connect(
+        host='192.168.50.166', 
+        port=3306,        
+        user='mmserver_db',            
+        password= db_password,  
+        database='events_scraping',     
+        charset='utf8mb4'
+    )
+    return conn

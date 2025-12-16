@@ -158,6 +158,7 @@ def find_json_files_in_timestamp(timestamp_folder: Path) -> List[Path]:
     Find all JSON files in a specific timestamp folder.
     
     Scans a timestamp folder for JSON files containing event data.
+    Checks the root folder, 'relevant' subfolder, and 'non-relevant' subfolder.
     Returns a sorted list of JSON file paths.
     
     Args:
@@ -168,12 +169,31 @@ def find_json_files_in_timestamp(timestamp_folder: Path) -> List[Path]:
         
     Example:
         json_files = find_json_files_in_timestamp(Path("data/events_output/2024-01-15"))
-        # Returns: [Path("events.json"), Path("activities.json")]
+        # Returns: [Path("relevant/blog1.json"), Path("non-relevant/blog1.json")]
     """
     json_files = []
+    # Check root folder first
     for json_file in timestamp_folder.glob("*.json"):
         json_files.append(json_file)
-    return sorted(json_files)
+    # Check 'relevant' subfolder (where relevant JSONs are saved)
+    relevant_folder = timestamp_folder / "relevant"
+    if relevant_folder.exists() and relevant_folder.is_dir():
+        for json_file in relevant_folder.glob("*.json"):
+            json_files.append(json_file)
+    # Check 'non-relevant' subfolder (where non-relevant JSONs are saved)
+    nonrelevant_folder = timestamp_folder / "non-relevant"
+    if nonrelevant_folder.exists() and nonrelevant_folder.is_dir():
+        for json_file in nonrelevant_folder.glob("*.json"):
+            json_files.append(json_file)
+    # Sort with relevant files first, then non-relevant, then root folder files
+    def sort_key(p: Path) -> tuple:
+        if p.parent.name == 'relevant':
+            return (0, p.name)
+        elif p.parent.name == 'non-relevant':
+            return (1, p.name)
+        else:
+            return (2, p.name)
+    return sorted(json_files, key=sort_key)
 
 
 def get_event_images(event_folder: Path, blog_source: str) -> List[Path]:
@@ -206,12 +226,13 @@ def load_events_from_file(file_path: Path) -> List[Dict]:
     
     Reads and parses a JSON file containing event data. Validates that
     the file contains a list of events and handles encoding issues.
+    Also normalizes keyword_tag from array to comma-separated string.
     
     Args:
         file_path (Path): Path to JSON file containing events
         
     Returns:
-        List[Dict]: List of event dictionaries
+        List[Dict]: List of event dictionaries with normalized keyword_tag
         
     Raises:
         ValueError: If JSON file doesn't contain a list of events
@@ -225,6 +246,16 @@ def load_events_from_file(file_path: Path) -> List[Dict]:
         events = json.loads(file_path.read_text(encoding="utf-8"))
         if not isinstance(events, list):
             raise ValueError("JSON file does not contain a list of events.")
+        
+        # Normalize keyword_tag: convert from array to comma-separated string
+        for event in events:
+            if 'keyword_tag' in event:
+                keyword_tag = event['keyword_tag']
+                if isinstance(keyword_tag, list):
+                    event['keyword_tag'] = ', '.join(str(k) for k in keyword_tag if k)
+                elif not isinstance(keyword_tag, str):
+                    event['keyword_tag'] = str(keyword_tag) if keyword_tag else ''
+        
         return events
     except Exception as e:
         raise Exception(f"Failed to load JSON: {e}")
@@ -235,7 +266,8 @@ def save_events_to_file(events: List[Dict], file_path: Path) -> None:
     Save events to JSON file.
     
     Writes a list of event dictionaries to a JSON file with proper
-    formatting and UTF-8 encoding.
+    formatting and UTF-8 encoding. Also normalizes keyword_tag to ensure
+    it's saved as a comma-separated string, not an array.
     
     Args:
         events (List[Dict]): List of event dictionaries to save
@@ -245,6 +277,15 @@ def save_events_to_file(events: List[Dict], file_path: Path) -> None:
         events = [{'title': 'Event 1'}, {'title': 'Event 2'}]
         save_events_to_file(events, Path("output/events.json"))
     """
+    # Normalize keyword_tag before saving to ensure it's always a string
+    for event in events:
+        if 'keyword_tag' in event:
+            keyword_tag = event['keyword_tag']
+            if isinstance(keyword_tag, list):
+                event['keyword_tag'] = ', '.join(str(k) for k in keyword_tag if k)
+            elif not isinstance(keyword_tag, str):
+                event['keyword_tag'] = str(keyword_tag) if keyword_tag else ''
+    
     file_path.write_text(json.dumps(events, indent=2, ensure_ascii=False), encoding="utf-8")
 
 

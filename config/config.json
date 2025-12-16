@@ -28,6 +28,69 @@
         "thenewageparents",
         "thesmartlocal"
     ],
+
+      "blogs": {
+            "bykido": {
+              "feed_url": "https://www.bykido.com/blogs/guides-and-reviews-singapore.atom/",
+              "strategy": "rss"
+            },
+            "sassymamasg": {
+              "feed_url": "https://www.sassymamasg.com/feed/",
+              "strategy": "rss"
+            },
+            "nparks": {
+              "site_url": "https://www.nparks.gov.sg/visit/activities/fun-children",
+              "strategy": "playwright"
+            },
+            "hdb": {
+              "site_url": "https://www.hdb.gov.sg/cs/infoweb/community",
+              "strategy": "playwright"
+            }
+    },
+
+
+    "category_pages": {
+        "bykido": [
+            {"name": "Family-Friendly Singapore", "url": "https://www.bykido.com/pages/discover-family-kids-friendly-singapore#events"},
+            {"name": "Indoor Playgrounds", "url": "https://www.bykido.com/pages/discover-family-kids-friendly-singapore#venues"},
+            {"name": "Outdoor Activities", "url": "https://www.bykido.com/blogs/restaurants-and-f-b-in-singapore/tagged/restaurant"}
+        ],
+        "sassymamasg": [
+            {"name": "Family Events", "url": "https://www.sassymamasg.com/category/play/indoor/"},
+            {"name": "Eating Out", "url": "https://www.sassymamasg.com/category/eat/eating-out/"},
+            {"name": "Indoor Play", "url": "https://www.sassymamasg.com/category/play/outdoor/"},
+            {"name": "Outdoor Activities", "url": "https://www.sassymamasg.com/category/whats-on/things-to-do-with-kids/"},
+            {"name": "Family Events", "url": "https://www.sassymamasg.com/category/whats-on/neighbourhood-guides/"}
+        ],
+        "littledayout": [
+            {"name": "Playgrounds", "url": "https://www.littledayout.com/indoor-playgrounds-singapore/"},
+            {"name": "Indoor Play", "url": "https://www.littledayout.com/best-free-outdoor-playgrounds-singapore-kids/"},
+            {"name": "Attractions", "url": "https://www.littledayout.com/playgrounds-in-singapore/"},
+            {"name": "Family Dining", "url": "  https://www.littledayout.com/amazing-list-kid-friendly-cafes-restaurants-with-playgrounds-play-spaces/"},
+            {"name": "Events", "url": "https://www.littledayout.com/events/"},
+            {"name": "Year-End School Holiday Activities", "url": "https://www.littledayout.com/amazing-list-year-end-school-holiday-activities-singapore/"},
+            {"name": "Nature Reserves & Parks & Gardens", "url": "https://www.littledayout.com/nature-reserves-parks-gardens-singapore/"}
+        ],
+        "honeykidsasia": [
+            {"name": "Things To Do", "url": "https://honeykidsasia.com/things-to-do-with-kids/indoor-playgrounds-attractions/"},
+            {"name": "Family Events", "url": "https://honeykidsasia.com/eat-drink/cafes-restaurants/"},
+            {"name": "Indoor Play", "url": "https://honeykidsasia.com/things-to-do-with-kids/outdoor-activities/"},
+            {"name": "Outdoor Fun", "url": "https://honeykidsasia.com/things-to-do-with-kids/family-events-things-to-do/"}
+        ],
+        "sunnycitykids": [
+            {"name": "Indoor Playgrounds", "url": "https://www.sunnycitykids.com/latest"},
+            {"name": "Outdoor Activities", "url": "https://www.sunnycitykids.com/category/indoor-playgrounds"},
+            {"name": "Attractions", "url": "https://www.sunnycitykids.com/category/outdoor-playgrounds"},
+            {"name": "Parks", "url": "https://www.sunnycitykids.com/category/parks"},
+            {"name": "Animals & Wildlife", "url": "https://www.sunnycitykids.com/category/animals-wildlife"},
+            {"name": "Museums", "url": "https://www.sunnycitykids.com/category/museums"},
+            {"name": "Outdoor Attractions", "url": "https://www.sunnycitykids.com/category/outdoor-attractions"},
+            {"name": "Water Play", "url": "https://www.sunnycitykids.com/category/water-play"}
+        ]
+    },
+
+
+
     "headers_for_request":{
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -37,7 +100,7 @@
         "Upgrade-Insecure-Requests": "1",
         "DNT": "1"
     },
-  "gemini_model": "gemini-2.5-pro",
+  "gemini_model": "gemini-2.0-flash",
   "query":{
     "is_existing":"SELECT 1 FROM processed_articles WHERE blog_name = ? AND post_id = ?"
   },

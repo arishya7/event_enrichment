@@ -45,13 +45,19 @@ config.event_schema = load_json_file(CONFIG_DIR / 'event_schema.json')
 # Load system instructions
 config.system_instructions = SimpleNamespace(
     with_schema=load_text_file(CONFIG_DIR / 'system_instruction_w_schema.txt'),
-    with_internet=load_text_file(CONFIG_DIR / 'system_instruction_w_internet.txt')
+    with_internet=load_text_file(CONFIG_DIR / 'system_instruction_w_internet.txt'),
+    combined=load_text_file(CONFIG_DIR / 'system_instruction_combined.txt') if (CONFIG_DIR / 'system_instruction_combined.txt').exists() else None
 )
 # Load API key
 config.google_api_key = os.getenv("GOOGLE_API_KEY")
 if not config.google_api_key:
     raise ValueError("GOOGLE_API_KEY environment variable not found")
 
+#load places api key
+config.places_api_key = os.getenv("PLACES_API_KEY")
+if not config.places_api_key:
+    raise ValueError("PLACES_API_KEY environment variable not found")
+    
 config.cx = os.getenv("cx")
 if not config.cx:
     raise ValueError("cx environment variable not found")
@@ -63,4 +69,3 @@ if not config.aws_access_key_id:
 config.aws_secret_access_key = os.getenv("AWS_SECRET_ACCESS_KEY")
 if not config.aws_secret_access_key:
     raise ValueError("AWS_SECRET_ACCESS_KEY environment variable not found")
-

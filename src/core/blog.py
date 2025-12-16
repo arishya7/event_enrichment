@@ -35,6 +35,39 @@ class Blog:
     # Auto-initialized fields
     articles: List[Article] = field(default_factory=list)
 
+    #site_url = Optional[str] = None
+    #strategy: str = "rss"
+
+    # def feed_articles(self) -> List[Article]:
+
+    #     """
+    #     dispatch fetching logic depending on strategy
+    #     """
+    #     if self.strategy == "rss":
+    #         if self.extract_feed():
+    #             articles, _ = self.parse_feed_file()
+    #             self.articles = articles
+    #             return self.articles
+    #         return []
+        
+    #     elif self.strategy == "playwright":
+    #         from src.services.playwright_scraper import PlaywrightScraper
+    #         scraper = PlaywrightScraper(self.site_url,self.name,self.timestamp)
+    #         self.articles = scraper.fetch_articles()
+    #         return self.articles
+        
+    #     elif self.strategy == "api":
+    #         from src.services.api_scraper import APIScaper
+    #         scraper = APIScaper(self.site_url, self.name,self.timestamp)
+    #         self.articles = scraper.fetch_articles()
+    #         return self.articles
+    #     else: 
+    #         formatter.print_error("unkown strategy")
+    #         return []
+
+            
+
+
     def _get_all_events(self) -> List[Event]:
         """Get all events from all articles in this blog.
         

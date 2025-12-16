@@ -83,12 +83,17 @@ def confirm_delete_image(event_manager: EventManager, event_idx: int, img_idx: i
     st.write("Are you sure you want to delete this image?")
     
     # Show image preview if available
-    local_path = "data\\" + img_obj.get("local_path", "")
-    if local_path:
-        img_file = Path(local_path)
-        if img_file.exists():
-            current_aspect_ratio = st.session_state.get('aspect_ratio', DEFAULT_ASPECT_RATIO)
-            display_image_with_aspect_ratio(str(img_file), current_aspect_ratio, 300)
+    # Safely derive a local file path only when a real relative path is present
+    local_rel = (img_obj.get("local_path") or "").strip() if isinstance(img_obj, dict) else ""
+    if local_rel:
+        img_file = Path("data") / local_rel
+        if img_file.is_file():
+            try:
+                current_aspect_ratio = st.session_state.get('aspect_ratio', DEFAULT_ASPECT_RATIO)
+                display_image_with_aspect_ratio(str(img_file), current_aspect_ratio, 300)
+            except Exception as e:
+                # Silently fail for preview images to avoid disrupting the dialog
+                pass
     
     col1, col2 = st.columns(2)
     with col1:
@@ -144,21 +149,44 @@ def render_image_section(event_manager: EventManager, event: Dict, event_idx: in
         while img_idx < len(images):
             img_obj = images[img_idx]
             st.markdown(f"### Image {img_idx + 1}")
+
+            if isinstance(img_obj, str):
+                img_obj = {"url": img_obj}
             
-            local_path = "data\\" + img_obj.get("local_path", "")
-            if not local_path:
-                img_idx += 1
-                continue
+            # Build a displayable source per image
+            local_rel = (img_obj.get("local_path") or "").strip()
+            url = (img_obj.get("url") or "").strip()
+
+            img_source = None
+            if local_rel:
+                candidate = Path("data") / local_rel
+                if candidate.is_file():
+                    img_source = str(candidate)
+
+            if img_source is None and url:
+                img_source = url
+
+            if not img_source:
+                continue  # nothing to show for this image
             
-            img_file = Path(local_path)
             img_col, meta_col = st.columns([4, 3])
             
             with img_col:
-                if img_file.exists():
-                    current_aspect_ratio = st.session_state.get('aspect_ratio', DEFAULT_ASPECT_RATIO)
-                    display_image_with_aspect_ratio(str(img_file), current_aspect_ratio, 1000)
+                if isinstance(img_source, str) and img_source.startswith(("http://", "https://")):
+                    # Handle URL images with error handling
+                    try:
+                        st.image(img_source, use_container_width=True)
+                    except Exception as e:
+                        # If URL fails, show a placeholder or warning
+                        st.warning(f"⚠️ Could not load image from URL: {img_source[:50]}...")
+                        st.info("💡 Image URL may be invalid or inaccessible. Please check the image URL in metadata.")
                 else:
-                    st.warning(f"Image not found: {img_file}")
+                    # Handle local file images
+                    current_aspect_ratio = st.session_state.get('aspect_ratio', DEFAULT_ASPECT_RATIO)
+                    try:
+                        display_image_with_aspect_ratio(img_source, current_aspect_ratio, 1000)
+                    except Exception as e:
+                        st.warning(f"⚠️ Could not display image: {str(e)}")
                 
                 st.markdown("<br>", unsafe_allow_html=True)
                 
@@ -322,6 +350,19 @@ def main():
     
     st.title("Event JSON & Image Editor")
     st.info(f"📁 Events directory: {events_output_dir.absolute()}")
+    
+    # Add download link for emails Excel file if it exists
+    emails_file = Path("data/emails.xlsx")
+    if emails_file.exists():
+        emails_data = emails_file.read_bytes()
+        st.download_button(
+            label="📧 Download Emails Excel",
+            data=emails_data,
+            file_name="emails.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            help="Download the organizer emails Excel file"
+        )
+    
     st.divider()
     
     # 1. Select timestamp folder and aspect ratio
@@ -355,13 +396,36 @@ def main():
         selected_file = st.selectbox(
             "Select an event JSON file to edit:",
             json_files_in_timestamp,
-            format_func=lambda p: p.name,
-            help="Select the JSON file containing the events you want to edit"
+            format_func=lambda p: f"[{p.parent.name}] {p.name}" if p.parent.name in ['relevant', 'non-relevant'] else p.name,
+            help="Select the JSON file containing the events you want to edit. Files are grouped by [relevant] or [non-relevant] folder."
         )
     
     # 3. Load events and create event manager
     try:
-        events = load_events_from_file(selected_file)
+        # Check if we need to reload events (new file selected, first load, or file modified)
+        file_mtime = selected_file.stat().st_mtime
+        session_key = f"events_{selected_file.name}_{file_mtime}"
+        cached_mtime = st.session_state.get(f"file_mtime_{selected_file.name}", 0)
+        
+        if (session_key not in st.session_state or 
+            'current_file' not in st.session_state or 
+            st.session_state['current_file'] != selected_file or
+            file_mtime != cached_mtime):
+            # Load events from file
+            events = load_events_from_file(selected_file)
+            
+            # Add unique IDs to events if they don't have them
+            for i, event in enumerate(events):
+                if '_unique_id' not in event:
+                    event['_unique_id'] = f"{selected_file.stem}_{i}"
+            
+            st.session_state[session_key] = events
+            st.session_state['current_file'] = selected_file
+            st.session_state[f"file_mtime_{selected_file.name}"] = file_mtime
+        else:
+            # Use cached events
+            events = st.session_state[session_key]
+        
         event_manager = EventManager(events, selected_file)
     except Exception as e:
         st.error(f"Failed to load events: {e}")
@@ -401,9 +465,16 @@ def main():
     current_page_events = filtered_events[start_idx:end_idx]
     
     for page_event_idx, event in enumerate(current_page_events):
-        # Calculate actual event index in the full list
+        # Calculate actual event index in the full unfiltered events list
         # Find the original index of this event in the full events list
-        original_event_idx = events.index(event)
+        try:
+            original_event_idx = events.index(event)
+        except ValueError:
+            # If event not found (shouldn't happen), use a fallback
+            original_event_idx = start_idx + page_event_idx
+        
+        # Use unique ID for form keys to prevent collisions
+        unique_id = event.get('_unique_id', f"event_{original_event_idx}")
         
         # Event separator
         st.markdown(
@@ -435,18 +506,18 @@ def main():
         
         # Show form and images only for unchecked events
         if not new_checked:
-            # Event form
-            form_data = render_event_form(event, original_event_idx)
+            # Event form - use unique ID for form keys
+            form_data = render_event_form(event, unique_id)
             if form_data:
                 success, message = event_manager.update_event(original_event_idx, form_data)
                 if success:
-                    st.session_state[f'success_message_{original_event_idx}'] = message
+                    st.session_state[f'success_message_{unique_id}'] = message
                     st.rerun()
                 else:
                     st.error(f"❌ {message}")
             
             # Show success message
-            render_success_message(original_event_idx)
+            render_success_message(unique_id)
             
             # Image management section
             render_image_section(event_manager, event, original_event_idx)

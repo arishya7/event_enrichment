@@ -30,6 +30,12 @@ from .aws_s3 import S3
 from .custom_search import search_valid_url, search_images, validate_url
 from .generative_language import gemini_generate_text, custom_gemini_generate_content
 from .places import googlePlace_searchText, get_coordinates_from_address
+from .page_images import extract_images
+from .page_emails import extract_company_emails_from_event
+try:
+    from .places import which_district
+except Exception:
+    which_district = None
 
 # Define what should be imported with 'from src.services import *'
 __all__ = [
@@ -47,5 +53,12 @@ __all__ = [
     
     # Places - Google Places API for geocoding and location services
     'googlePlace_searchText',
-    'get_coordinates_from_address'
+    'get_coordinates_from_address',
+    'which_district',
+    
+    # Page Images - Extract images directly from webpage URLs
+    'extract_images',
+
+    # Page Emails - Extract company emails starting from an event page URL
+    'extract_company_emails_from_event'
 ] 

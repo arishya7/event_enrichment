@@ -13,4 +13,5 @@ sys.path.insert(0, str(root_path))
 from src.ui.main_app import main
 
 if __name__ == "__main__":
-    main() 
+    main()
+

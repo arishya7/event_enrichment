@@ -39,7 +39,20 @@ Example Usage:
 
 import requests
 
-from src.utils.config import config    
+from src.utils.config import config  
+from pathlib import Path
+
+# Optional Geo dependencies
+try:
+    import geopandas as gpd
+    import pandas as pd
+    from shapely.geometry import Point
+    GEO_AVAILABLE = True
+except Exception:
+    GEO_AVAILABLE = False
+import re
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 
 def googlePlace_searchText(query: str):
     """
@@ -76,7 +89,7 @@ def googlePlace_searchText(query: str):
     
     # Configure headers for Google Places API
     headers = {
-      "X-Goog-Api-Key": config.google_api_key,
+      "X-Goog-Api-Key": config.places_api_key,
       "Content-Type": "application/json",
       "X-Goog-FieldMask": "places.formattedAddress,places.location"  # Request specific fields
     }
@@ -105,6 +118,41 @@ def googlePlace_searchText(query: str):
     
     # Return the first (most relevant) place found
     return result['places'][0]
+
+def cleaning(desc):
+    if not isinstance(desc,str):
+        return 
+    district_match = re.search(r"<th>PLN_AREA_N<\/th>\s*<td>([^<]+)<", desc)
+    region_match = re.search(r"<th>REGION_N<\/th>\s*<td>([^<]+)<", desc)
+    district = district_match.group(1) if district_match else None
+    region  = region_match.group(1) if region_match else None
+    return district,region
+
+# Load districts if geo stack available
+if GEO_AVAILABLE:
+    try:
+        districts = gpd.read_file(PROJECT_ROOT/"config"/"districts.geojson")
+        districts[['PLN_AREA_N','REGION_N']] =  districts["Description"].apply(
+            lambda d: pd.Series(cleaning(d))
+        )
+    except Exception:
+        GEO_AVAILABLE = False
+        districts = None
+else:
+    districts = None
+
+
+def which_district(lo,la):
+    if not GEO_AVAILABLE or districts is None or lo is None or la is None:
+        return None, None
+    try:
+        point = Point(lo,la)
+        match = districts[districts.contains(point)]
+        if not match.empty:
+            return match.iloc[0]["PLN_AREA_N"], match.iloc[0]["REGION_N"]
+    except Exception:
+        pass
+    return None,None
 
 def get_coordinates_from_address(address):
     """
@@ -143,7 +191,13 @@ def get_coordinates_from_address(address):
             location = place_data['location']
             longitude = location.get('longitude')
             latitude = location.get('latitude')
+            
             return longitude, latitude
+        if longitude and latitude:
+            district, area = which_district(longitude, latitude)
+            planning_area = district
+            region = area
+
     except Exception as e:
         print(f"Error getting coordinates for address '{address}': {str(e)}")
     

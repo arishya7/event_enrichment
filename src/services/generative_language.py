@@ -40,16 +40,17 @@ Example Usage:
     response = custom_gemini_generate_content(prompt, config, "gemini-pro", api_key)
 """
 
-from google import genai
-from google.genai import types
-from google.genai.types import GenerateContentConfig, GenerateContentResponse
 from typing import Optional
+
+# Use the new google-genai client
+from google import genai
+from google.genai.types import GenerateContentConfig
 
 from src.utils.text_utils import is_valid_json, clean_text
 from src.utils.timeout_utils import run_with_timeout, TimeoutError
 from src.utils.file_utils import edit_prompt_interactively
 
-def gemini_generate_text(client: genai.Client, model: str, prompt: str, config: GenerateContentConfig, timeout_seconds: int = 60) -> GenerateContentResponse:
+def gemini_generate_text(client, model: str, prompt: str, config: GenerateContentConfig, timeout_seconds: int = 60):
     """
     Make a Gemini API call with timeout protection.
     
@@ -93,7 +94,7 @@ def gemini_generate_text(client: genai.Client, model: str, prompt: str, config: 
     return run_with_timeout(api_call, timeout_seconds)
 
 
-def custom_gemini_generate_content(prompt: str, config: GenerateContentConfig, model: str, google_api_key: str) -> Optional[GenerateContentResponse]:
+def custom_gemini_generate_content(prompt: str, config: GenerateContentConfig, model: str, google_api_key: str):
     """
     Generate content using Gemini API with comprehensive validation and retry logic.
     
@@ -153,20 +154,49 @@ def custom_gemini_generate_content(prompt: str, config: GenerateContentConfig, m
                 
             # Step 3: JSON Validation (if required)
             # If the config specifies JSON response, validate the format
+            should_validate_json = False
             if hasattr(config, 'response_mime_type') and config.response_mime_type == 'application/json':
-                is_valid, error_msg, _ = is_valid_json(clean_text(response.text))
+                should_validate_json = True
+            elif hasattr(config, 'response_schema') and config.response_schema is not None:
+                should_validate_json = True
+
+            if should_validate_json:
+                raw_text = clean_text(response.text)
+                is_valid, error_msg, _ = is_valid_json(raw_text)
                 if not is_valid:
-                    print(f"│ │ [GenerativeLanguage.custom_gemini_generate_content] Invalid JSON: {error_msg}")
-                    continue
+                    # Try to extract first JSON array/object from the text as a fallback
+                    import re
+                    candidate = None
+                    # Prefer JSON array (our schema returns a list of events)
+                    m = re.search(r"\[.*\]", raw_text, re.DOTALL)
+                    if m:
+                        candidate = m.group(0)
+                    else:
+                        m2 = re.search(r"\{.*\}", raw_text, re.DOTALL)
+                        if m2:
+                            candidate = m2.group(0)
+                    if candidate:
+                        is_valid2, error_msg2, _ = is_valid_json(candidate)
+                        if is_valid2:
+                            # Overwrite response.text with the extracted JSON for downstream parsing
+                            class _R:
+                                def __init__(self, t):
+                                    self.text = t
+                            response = _R(candidate)
+                        else:
+                            print(f"│ │ [GenerativeLanguage.custom_gemini_generate_content] Invalid JSON after extraction: {error_msg2}")
+                            print(f"│ │ [GenerativeLanguage.custom_gemini_generate_content] Original invalid JSON: {error_msg}")
+                            continue
+                    else:
+                        print(f"│ │ [GenerativeLanguage.custom_gemini_generate_content] Invalid JSON: {error_msg}")
+                        continue
                 
             # Step 4: Check for Empty Events
             # Detect if the response indicates no events were found
-            if response.text == "[]":
-                if attempt_num < max_attempts:
-                    print(f"│ │ [GenerativeLanguage.custom_gemini_generate_content] No events detected, retrying...")
-                    continue
-                print(f"│ │ [GenerativeLanguage.custom_gemini_generate_content] No events detected after {max_attempts} attempts")
-                return None
+            # If we get a valid empty array, that's a legitimate response - don't retry
+            if response.text.strip() == "[]":
+                print(f"│ │ [GenerativeLanguage.custom_gemini_generate_content] No events detected in article")
+                return response  # Return the valid empty response, don't retry
 
             # All validations passed - return the successful response
             return response
