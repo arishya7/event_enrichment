@@ -63,10 +63,8 @@
             {"name": "Family Events", "url": "https://www.sassymamasg.com/category/whats-on/neighbourhood-guides/"}
         ],
         "littledayout": [
-            {"name": "Playgrounds", "url": "https://www.littledayout.com/indoor-playgrounds-singapore/"},
-            {"name": "Indoor Play", "url": "https://www.littledayout.com/best-free-outdoor-playgrounds-singapore-kids/"},
             {"name": "Attractions", "url": "https://www.littledayout.com/playgrounds-in-singapore/"},
-            {"name": "Family Dining", "url": "  https://www.littledayout.com/amazing-list-kid-friendly-cafes-restaurants-with-playgrounds-play-spaces/"},
+            {"name": "Family Dining", "url": "https://www.littledayout.com/category/lifestyle/food-dining/"},
             {"name": "Events", "url": "https://www.littledayout.com/events/"},
             {"name": "Year-End School Holiday Activities", "url": "https://www.littledayout.com/amazing-list-year-end-school-holiday-activities-singapore/"},
             {"name": "Nature Reserves & Parks & Gardens", "url": "https://www.littledayout.com/nature-reserves-parks-gardens-singapore/"}

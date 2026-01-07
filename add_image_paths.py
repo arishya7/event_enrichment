@@ -137,3 +137,4 @@ if __name__ == "__main__":
     
     print("Adding local_path and filename to existing image objects...")
     add_local_paths_to_json(json_folder, images_folder)
+

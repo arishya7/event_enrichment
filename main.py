@@ -100,32 +100,64 @@ def run_category_scrape(args):
             print("\nCancelled.")
             return
     
-    # Show category pages for selected blog
-    pages = category_pages[selected_blog]
-    print(f"\n📂 {selected_blog.upper()} - Select a category:\n")
-    for i, page in enumerate(pages, 1):
-        print(f"  {i}. {page['name']}")
-        print(f"     {page['url'][:60]}...")
-    print()
-    
-    # Get category selection
-    while True:
-        try:
-            cat_choice = input(f"Enter category number (1-{len(pages)}): ").strip()
-            cat_idx = int(cat_choice) - 1
-            if 0 <= cat_idx < len(pages):
-                selected_page = pages[cat_idx]
-                break
-            print(f"Invalid choice. Please enter 1-{len(pages)}.")
-        except ValueError:
-            print(f"Invalid input. Please enter a number 1-{len(pages)}.")
-        except KeyboardInterrupt:
-            print("\nCancelled.")
+    # Special handling for honeykidsasia - category scraping doesn't work, ask for URL instead
+    if selected_blog.lower() == 'honeykidsasia':
+        print(f"\n⚠️ Category page scraping is not supported for {selected_blog}.")
+        print("   Please enter a specific article URL instead.\n")
+        
+        # Show available category links from config so they can browse and find articles
+        if selected_blog in category_pages:
+            pages = category_pages[selected_blog]
+            print("📂 Available category pages (browse these to find article URLs):\n")
+            for i, page in enumerate(pages, 1):
+                print(f"  {i}. {page['name']}")
+                print(f"     {page['url']}")
+            print()
+        
+        print("Example article URLs:")
+        print("  • https://honeykidsasia.com/things-to-do-with-kids-during-school-holidays-singapore/")
+        print("  • https://honeykidsasia.com/things-to-do-with-kids/indoor-playgrounds-attractions/")
+        print()
+        
+        url = input("Enter article URL: ").strip()
+        if not url:
+            print("No URL provided. Returning to menu.")
             return
-    
-    url = selected_page['url']
-    print(f"\n✅ Selected: {selected_page['name']}")
-    print(f"   URL: {url}")
+        
+        # Validate URL
+        if not url.startswith('http'):
+            print("❌ Invalid URL. Must start with http:// or https://")
+            return
+        
+        selected_page = {'name': 'Custom Article', 'url': url}
+        print(f"\n✅ Selected URL: {url[:70]}...")
+    else:
+        # Show category pages for selected blog
+        pages = category_pages[selected_blog]
+        print(f"\n📂 {selected_blog.upper()} - Select a category:\n")
+        for i, page in enumerate(pages, 1):
+            print(f"  {i}. {page['name']}")
+            print(f"     {page['url'][:60]}...")
+        print()
+        
+        # Get category selection
+        while True:
+            try:
+                cat_choice = input(f"Enter category number (1-{len(pages)}): ").strip()
+                cat_idx = int(cat_choice) - 1
+                if 0 <= cat_idx < len(pages):
+                    selected_page = pages[cat_idx]
+                    break
+                print(f"Invalid choice. Please enter 1-{len(pages)}.")
+            except ValueError:
+                print(f"Invalid input. Please enter a number 1-{len(pages)}.")
+            except KeyboardInterrupt:
+                print("\nCancelled.")
+                return
+        
+        url = selected_page['url']
+        print(f"\n✅ Selected: {selected_page['name']}")
+        print(f"   URL: {url}")
     
     # Use max_articles from args if provided, otherwise ask
     if args.max_articles:

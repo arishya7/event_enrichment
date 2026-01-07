@@ -87,7 +87,7 @@ Select a blog:
   1. bykido
   2. sassymamasg
   3. littledayout
-  4. honeykidsasia
+  4. honeykidsasia 
   5. sunnycitykids
 
 Enter blog number: 2
@@ -405,6 +405,48 @@ python cleaning_csv.py data/events_output/14Nov.csv data/14Nov_clean.csv
 - Reorders columns to match database schema
 - Adds missing columns as empty
 - Quotes all fields for safe import
+
+#### Deduplicate Events Across Folders
+Removes duplicate events across multiple timestamp folders using semantic similarity. Compares events across selected folders and removes duplicates from their original JSON files, including associated images.
+
+```bash
+python Scripts/merge_and_dedup_2026.py
+```
+
+**What it does:**
+- Loads events from selected folders (defaults to all `2026*` folders)
+- Compares events across folders using semantic similarity (85% threshold)
+- Identifies duplicates using venue matching and title similarity
+- Removes duplicates from their original JSON files
+- Deletes associated images for removed duplicates
+- Preserves original folder structure (no merging)
+
+**Interactive folder selection:**
+- **[Enter]** - Uses default (all 2026 folders)
+- **`all`** - Selects all folders
+- **Numbers** - Select specific folders (e.g., `1,3,5` or `1-5`)
+- **Custom** - Type folder names separated by commas (e.g., `20260106_161233,20260107_091614`)
+
+**Example:**
+```bash
+python Scripts/merge_and_dedup_2026.py
+
+# You'll see:
+📂 Available folders:
+   1. 20260106_161233
+   2. 20260106_163715
+   3. 20260107_091614
+   ...
+
+Select folders:
+  [Enter] = Use default (all 2026 folders)
+  'all' = All folders
+  Numbers = Specific folders (e.g., '1,3,5' or '1-5')
+  Custom = Type folder names separated by commas
+Your choice: 
+```
+
+**Note:** The script uses semantic deduplication - events with 85%+ similarity or same venue with high similarity are considered duplicates. The first occurrence is kept, subsequent duplicates are removed.
 
 ## Directory Structure
 

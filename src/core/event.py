@@ -221,7 +221,8 @@ class Event:
                 min_price=min_price,
                 max_price=max_price,
                 planning_area=event_dict.get('planning_area', ''),
-                region=event_dict.get('region', '')
+                region=event_dict.get('region', ''),
+                skip_url_validation=event_dict.get('skip_url_validation', False)
             )
         except KeyError as e:
             # This should rarely happen now since we use .get() with defaults

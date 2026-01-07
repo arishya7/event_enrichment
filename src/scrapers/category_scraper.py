@@ -151,13 +151,17 @@ class CategoryScraper:
                 print(f"\n📰 Article {i}/{len(article_links)}")
                 print(f"   URL: {article_url[:60]}...")
                 
-                events = self._process_article(article_url, context)
-                
-                if events:
-                    print(f"   ✅ Extracted {len(events)} events")
-                    self.events.extend(events)
-                else:
-                    print(f"   ⚠️ No events extracted")
+                try:
+                    events = self._process_article(article_url, context)
+                    
+                    if events:
+                        print(f"   ✅ Extracted {len(events)} events")
+                        self.events.extend(events)
+                    else:
+                        print(f"   ⚠️ No events extracted")
+                except Exception as e:
+                    print(f"   ❌ Failed to process article: {str(e)[:100]}")
+                    # Continue to next article instead of stopping
                 
                 if i < len(article_links):
                     time.sleep(RATE_LIMIT)
@@ -249,7 +253,7 @@ class CategoryScraper:
             # Site-specific patterns
             is_bykido = '/blogs/' in path and '/tagged/' not in path and len(path) > 35
             is_sassymama = 'sassymama' in base_domain and len(path) > 15
-            is_sunnycity = 'sunnycitykids' in base_domain and ('/activities/' in path or '/blog/' in path) and len(path) > 15
+            is_sunnycity = 'sunnycitykids' in base_domain and len(path) > 15 and path != '/latest'
             is_littledayout = 'littledayout' in base_domain and '/category/' not in path and len(path) > 10 and '-' in path
             
             if is_bykido or is_sassymama or is_sunnycity or is_littledayout:
@@ -267,13 +271,40 @@ class CategoryScraper:
     
     def _process_article(self, url: str, context) -> List[Dict]:
         """Fetch and process a single article."""
+        page = None
         try:
-            # Fetch article content
-            page = context.new_page()
-            page.goto(url, timeout=30000, wait_until="domcontentloaded")
-            page.wait_for_timeout(2000)
-            html = page.content()
-            page.close()
+            # Fetch article content with retry logic
+            max_retries = 3
+            html = None
+            
+            for attempt in range(max_retries):
+                try:
+                    page = context.new_page()
+                    # Try domcontentloaded first (faster, more reliable)
+                    page.goto(url, timeout=30000, wait_until="domcontentloaded")
+                    # Shorter wait time to reduce connection issues
+                    page.wait_for_timeout(2000)  # Give time for JS to render
+                    html = page.content()
+                    page.close()
+                    page = None
+                    break  # Success, exit retry loop
+                except Exception as e:
+                    if page:
+                        try:
+                            page.close()
+                        except:
+                            pass
+                        page = None
+                    
+                    if attempt < max_retries - 1:
+                        print(f"   ⚠️ Retry {attempt + 1}/{max_retries} after error: {str(e)[:50]}")
+                        time.sleep(1)  # Brief pause before retry
+                    else:
+                        raise  # Re-raise on final attempt
+            
+            if not html:
+                print(f"   ❌ Failed to fetch page after {max_retries} attempts")
+                return []
             
             soup = BeautifulSoup(html, "html.parser")
             
@@ -287,14 +318,124 @@ class CategoryScraper:
             
             # Extract main content
             content = ""
-            for selector in ['article', '.post-content', '.entry-content', '.article-content', 'main']:
-                container = soup.select_one(selector)
-                if container:
-                    for script in container(['script', 'style', 'nav', 'header', 'footer']):
-                        script.decompose()
-                    content = container.get_text(separator=' ', strip=True)
-                    if len(content) > 500:
-                        break
+            base_domain = urlparse(url).netloc.lower()
+            
+            # Special handling for sunnycitykids - just extract all text
+            if 'sunnycitykids' in base_domain:
+                try:
+                    # Simple approach: just get all text from body, no complex filtering
+                    body = soup.find('body')
+                    if body:
+                        # Remove script and style tags first (safe to do)
+                        for tag in body.find_all(['script', 'style']):
+                            tag.decompose()
+                        content = body.get_text(separator=' ', strip=True)
+                        print(f"   Extracted all text content: {len(content)} chars")
+                    else:
+                        # Fallback: get all text from soup
+                        for tag in soup.find_all(['script', 'style']):
+                            tag.decompose()
+                        content = soup.get_text(separator=' ', strip=True)
+                        print(f"   Extracted all text content (no body): {len(content)} chars")
+                except Exception as e:
+                    print(f"   ⚠️ Error in content extraction: {e}")
+                    # Last resort: just get all text
+                    try:
+                        content = soup.get_text(separator=' ', strip=True)
+                        print(f"   Extracted text (fallback): {len(content)} chars")
+                    except Exception as e2:
+                        print(f"   ❌ Complete failure: {e2}")
+                        content = ""
+            
+            else:
+                # For other sites, use structured extraction
+                # Strategy 1: Try finding content by starting from h1 and walking up DOM tree
+                if title_tag:
+                    current = title_tag.parent
+                    for _ in range(5):  # Walk up max 5 levels
+                        if current and current.name:
+                            # Remove unwanted elements
+                            test_container = BeautifulSoup(str(current), 'html.parser')
+                            for unwanted in test_container(['script', 'style', 'nav', 'header', 'footer', 'aside', 'form']):
+                                unwanted.decompose()
+                            
+                            text = test_container.get_text(separator=' ', strip=True)
+                            if len(text) > 500:
+                                content = text
+                                print(f"   Found content via h1 parent traversal: {len(content)} chars")
+                                break
+                        if current:
+                            current = current.parent
+                        else:
+                            break
+                
+                # Strategy 2: Try site-specific and common selectors
+                if len(content) < 500:
+                    selectors_to_try = []
+                    
+                    if 'sassymama' in base_domain:
+                        selectors_to_try = ['.entry-content', '.post-content', 'article', 'main']
+                    else:
+                        selectors_to_try = ['article', '.post-content', '.entry-content', '.article-content', 'main', '.content-wrapper', '[role="main"]']
+                    
+                    for selector in selectors_to_try:
+                        try:
+                            container = soup.select_one(selector)
+                            if container:
+                                # Clone to avoid modifying original
+                                test_container = BeautifulSoup(str(container), 'html.parser')
+                                for unwanted in test_container(['script', 'style', 'nav', 'header', 'footer', 'aside', 'form', 'iframe']):
+                                    unwanted.decompose()
+                                
+                                text = test_container.get_text(separator=' ', strip=True)
+                                if len(text) > 500:
+                                    content = text
+                                    print(f"   Found content via selector '{selector}': {len(content)} chars")
+                                    break
+                        except Exception:
+                            continue  # Skip invalid selectors
+                
+                # Strategy 3: Find container with h1 and lots of text nearby
+                if len(content) < 500 and title_tag:
+                    # Find all siblings and parent of h1
+                    parent = title_tag.parent
+                    if parent:
+                        test_container = BeautifulSoup(str(parent), 'html.parser')
+                        for unwanted in test_container(['script', 'style', 'nav', 'header', 'footer', 'aside', 'form']):
+                            unwanted.decompose()
+                        text = test_container.get_text(separator=' ', strip=True)
+                        if len(text) > 500:
+                            content = text
+                            print(f"   Found content via h1 parent: {len(content)} chars")
+                
+                # Strategy 4: Last resort - find largest text container
+                if len(content) < 500:
+                    # Remove unwanted elements globally
+                    for unwanted in soup(['script', 'style', 'nav', 'header', 'footer', 'aside', 'form', 'iframe']):
+                        unwanted.decompose()
+                    
+                    # Try sections first, then divs
+                    for tag_name in ['section', 'div', 'main', 'article']:
+                        elements = soup.find_all(tag_name, recursive=True)
+                        best_element = None
+                        best_length = 0
+                        
+                        for elem in elements:
+                            # Skip if it's likely navigation or sidebar
+                            elem_classes = ' '.join(elem.get('class', [])).lower()
+                            elem_id = elem.get('id', '').lower()
+                            if any(skip in elem_classes or skip in elem_id for skip in ['nav', 'menu', 'sidebar', 'footer', 'header', 'widget', 'ad', 'advertisement', 'comment', 'related']):
+                                continue
+                            
+                            text = elem.get_text(separator=' ', strip=True)
+                            if len(text) > best_length and len(text) > 500:
+                                best_length = len(text)
+                                best_element = elem
+                        
+                        if best_element:
+                            content = best_element.get_text(separator=' ', strip=True)
+                            print(f"   Found content via largest {tag_name}: {len(content)} chars")
+                            break
             
             # Extract images from article
             images = self._extract_images(soup, url)
@@ -311,6 +452,12 @@ class CategoryScraper:
             
         except Exception as e:
             print(f"   ❌ Error processing article: {e}")
+            # Ensure page is closed even on error
+            if page:
+                try:
+                    page.close()
+                except:
+                    pass
             return []
     
     def _extract_images(self, soup: BeautifulSoup, base_url: str) -> List[Dict]:
@@ -320,7 +467,9 @@ class CategoryScraper:
         
         # Look for images in article content
         for img in soup.find_all('img', src=True):
-            src = img.get('src', '')
+            if img is None:
+                continue
+            src = img.get('src', '') if img else ''
             if not src or src in seen_urls:
                 continue
             
@@ -336,7 +485,7 @@ class CategoryScraper:
                 seen_urls.add(full_url)
                 images.append({
                     "url": full_url,
-                    "alt": img.get('alt', '')
+                    "alt": img.get('alt', '') if img else ''
                 })
         
         return images[:10]  # Limit to first 10 images
