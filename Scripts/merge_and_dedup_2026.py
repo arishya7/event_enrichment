@@ -7,11 +7,15 @@ This script:
 3. Identifies duplicates across folders using semantic similarity
 4. Removes duplicates from their original JSON files
 5. Deletes images associated with removed duplicates
-6. Keeps original folder structure (no merging)
+6. Creates a new merged folder with current timestamp
+   - All relevant events combined into one JSON
+   - All non-relevant events combined into one JSON
+   - All remaining images copied into a single images folder
 """
 
 import json
 import sys
+import shutil
 from pathlib import Path
 from typing import List, Dict, Any, Tuple, Set
 from datetime import datetime
@@ -351,13 +355,153 @@ def remove_duplicates_from_files(events_with_sources: List[EventWithSource], dup
     return stats
 
 
+def categorize_event_source(source_file: Path) -> str:
+    """
+    Determine whether an event should be treated as relevant or non-relevant
+    based on its source file path.
+    """
+    parts = {p.lower() for p in source_file.parts}
+    if "relevant" in parts:
+        return "relevant"
+    if "non-relevant" in parts or "non_relevant" in parts:
+        return "non-relevant"
+    # Default: treat as relevant if not clearly marked
+    return "relevant"
+
+
+def merge_events_into_new_folder(
+    folders: List[Path],
+    base_dir: Path,
+) -> Dict[str, Any]:
+    """
+    After deduplication, merge all remaining events and images into
+    a new timestamped folder under data/dedup/.
+    
+    Structure:
+      data/dedup/<timestamp>/
+        ├── relevant/merged_relevant.json
+        ├── non-relevant/merged_non_relevant.json
+        └── images/...
+    """
+    stats = {
+        "merged_timestamp": None,
+        "relevant_events": 0,
+        "non_relevant_events": 0,
+        "images_copied": 0,
+    }
+
+    if not folders:
+        return stats
+
+    # Use data/dedup as the base directory for merged folders
+    dedup_dir = base_dir / "data" / "dedup"
+    dedup_dir.mkdir(parents=True, exist_ok=True)
+
+    # Create unique timestamp folder
+    base_timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    merged_dir = dedup_dir / base_timestamp
+    counter = 1
+    while merged_dir.exists():
+        merged_dir = dedup_dir / f"{base_timestamp}_{counter}"
+        counter += 1
+
+    relevant_dir = merged_dir / "relevant"
+    nonrelevant_dir = merged_dir / "non-relevant"
+    images_dir = merged_dir / "images"
+
+    relevant_dir.mkdir(parents=True, exist_ok=True)
+    nonrelevant_dir.mkdir(parents=True, exist_ok=True)
+    images_dir.mkdir(parents=True, exist_ok=True)
+
+    # Merge events by reading JSON files directly (no Event reconstruction)
+    print("\n📄 Scanning JSON files for merging...")
+    relevant_events: List[Dict[str, Any]] = []
+    nonrelevant_events: List[Dict[str, Any]] = []
+
+    def _gather_from_json_dir(root_folder: Path, json_dir: Path) -> None:
+        """Load events from all JSON files in a directory into the appropriate bucket."""
+        for json_file in json_dir.glob("*.json"):
+            try:
+                with open(json_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+            except Exception:
+                continue
+
+            events_list = data if isinstance(data, list) else [data]
+
+            for event_dict in events_list:
+                try:
+                    category = categorize_event_source(json_file)
+                    if category == "relevant":
+                        relevant_events.append(event_dict)
+                    else:
+                        nonrelevant_events.append(event_dict)
+                except Exception:
+                    continue
+
+    for folder in folders:
+        # JSONs directly under the timestamp folder
+        _gather_from_json_dir(folder, folder)
+
+        # JSONs under relevant/ and non-relevant/
+        rel_dir = folder / "relevant"
+        if rel_dir.exists():
+            _gather_from_json_dir(folder, rel_dir)
+
+        nonrel_dir = folder / "non-relevant"
+        if nonrel_dir.exists():
+            _gather_from_json_dir(folder, nonrel_dir)
+
+    print(f"   ➤ Total relevant events found: {len(relevant_events)}")
+    print(f"   ➤ Total non-relevant events found: {len(nonrelevant_events)}")
+
+    # Save merged JSONs
+    relevant_path = relevant_dir / "merged_relevant.json"
+    nonrelevant_path = nonrelevant_dir / "merged_non_relevant.json"
+
+    with open(relevant_path, "w", encoding="utf-8") as f:
+        json.dump(relevant_events, f, indent=2, ensure_ascii=False, default=str)
+
+    with open(nonrelevant_path, "w", encoding="utf-8") as f:
+        json.dump(nonrelevant_events, f, indent=2, ensure_ascii=False, default=str)
+
+    stats["merged_timestamp"] = merged_dir.name
+    stats["relevant_events"] = len(relevant_events)
+    stats["non_relevant_events"] = len(nonrelevant_events)
+
+    # Collect and copy images from all selected folders into the merged images dir
+    print("\n🖼️  Collecting images into merged images folder...")
+    images_copied = 0
+    for folder in folders:
+        src_images_dir = folder / "images"
+        if not src_images_dir.exists():
+            continue
+        for img_path in src_images_dir.rglob("*"):
+            if not img_path.is_file():
+                continue
+            try:
+                rel_path = img_path.relative_to(src_images_dir)
+                target_path = images_dir / rel_path
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                # If an image with same relative path already exists, keep the first one
+                if target_path.exists():
+                    continue
+                shutil.copy2(img_path, target_path)
+                images_copied += 1
+            except Exception:
+                continue
+
+    stats["images_copied"] = images_copied
+    return stats
+
+
 def main():
     """Main function to deduplicate across 2026 folders."""
     print("\n" + "="*60)
     print("🔍 DEDUPLICATE EVENTS ACROSS 2026 FOLDERS")
     print("="*60)
     print("This will remove duplicates from their original folders and delete associated images.")
-    print("Original folder structure will be preserved.\n")
+    print("Then it will merge remaining events into a new timestamp folder with combined JSONs and images.\n")
     
     # Confirmation
     confirm = input("Continue? (yes/no): ").strip().lower()
@@ -406,50 +550,61 @@ def main():
     
     print(f"\n✅ Found {len(duplicates)} duplicate events to remove")
     
-    if not duplicates:
-        print("No duplicates found. Nothing to remove.")
-        return
+    if duplicates:
+        # Show what will be removed
+        print("\n📋 Duplicates to be removed:")
+        duplicates_by_folder = {}
+        for dup in duplicates:
+            folder_name = dup.source_folder.name
+            if folder_name not in duplicates_by_folder:
+                duplicates_by_folder[folder_name] = []
+            duplicates_by_folder[folder_name].append(dup)
+        
+        for folder_name, folder_dups in sorted(duplicates_by_folder.items()):
+            print(f"\n   {folder_name}: {len(folder_dups)} duplicate(s)")
+            for dup in folder_dups[:5]:  # Show first 5
+                print(f"      - {dup.event.title[:50]}... @ {dup.source_file.name}")
+            if len(folder_dups) > 5:
+                print(f"      ... and {len(folder_dups) - 5} more")
+        
+        # Final confirmation
+        print(f"\n⚠️  This will remove {len(duplicates)} events and delete associated images.")
+        final_confirm = input("Proceed with removal? (yes/no): ").strip().lower()
+        if final_confirm not in ['yes', 'y']:
+            print("Cancelled duplicate removal. Proceeding to merge without deleting duplicates.")
+            duplicates = []
+        else:
+            # Remove duplicates from files and delete images
+            print("\n🗑️  Removing duplicates from files...")
+            stats = remove_duplicates_from_files(all_events_with_sources, duplicates)
+            
+            # Print dedup summary
+            print("\n" + "="*60)
+            print("✅ DEDUPLICATION COMPLETE")
+            print("="*60)
+            print(f"📄 Files modified: {stats['files_modified']}")
+            print(f"🗑️  Events removed: {stats['events_removed']}")
+            print(f"🖼️  Images deleted: {stats['images_deleted']}")
+            
+            if stats['errors']:
+                print(f"\n⚠️  Errors encountered: {len(stats['errors'])}")
+                for error in stats['errors'][:5]:
+                    print(f"   - {error}")
+    else:
+        print("No duplicates found. Skipping removal and proceeding to merge.")
     
-    # Show what will be removed
-    print("\n📋 Duplicates to be removed:")
-    duplicates_by_folder = {}
-    for dup in duplicates:
-        folder_name = dup.source_folder.name
-        if folder_name not in duplicates_by_folder:
-            duplicates_by_folder[folder_name] = []
-        duplicates_by_folder[folder_name].append(dup)
+    # Merge remaining events and images into new timestamp folder
+    print("\n📦 Merging remaining events into new timestamp folder...")
+    merge_stats = merge_events_into_new_folder(folders, base_dir)
     
-    for folder_name, folder_dups in sorted(duplicates_by_folder.items()):
-        print(f"\n   {folder_name}: {len(folder_dups)} duplicate(s)")
-        for dup in folder_dups[:5]:  # Show first 5
-            print(f"      - {dup.event.title[:50]}... @ {dup.source_file.name}")
-        if len(folder_dups) > 5:
-            print(f"      ... and {len(folder_dups) - 5} more")
-    
-    # Final confirmation
-    print(f"\n⚠️  This will remove {len(duplicates)} events and delete associated images.")
-    final_confirm = input("Proceed with removal? (yes/no): ").strip().lower()
-    if final_confirm not in ['yes', 'y']:
-        print("Cancelled.")
-        return
-    
-    # Remove duplicates from files and delete images
-    print("\n🗑️  Removing duplicates from files...")
-    stats = remove_duplicates_from_files(all_events_with_sources, duplicates)
-    
-    # Print summary
     print("\n" + "="*60)
-    print("✅ DEDUPLICATION COMPLETE")
+    print("✅ MERGE COMPLETE")
     print("="*60)
-    print(f"📄 Files modified: {stats['files_modified']}")
-    print(f"🗑️  Events removed: {stats['events_removed']}")
-    print(f"🖼️  Images deleted: {stats['images_deleted']}")
-    
-    if stats['errors']:
-        print(f"\n⚠️  Errors encountered: {len(stats['errors'])}")
-        for error in stats['errors'][:5]:
-            print(f"   - {error}")
-    
+    if merge_stats["merged_timestamp"]:
+        print(f"📁 New folder: {merge_stats['merged_timestamp']}")
+    print(f"📄 Relevant events merged: {merge_stats['relevant_events']}")
+    print(f"📄 Non-relevant events merged: {merge_stats['non_relevant_events']}")
+    print(f"🖼️  Images copied: {merge_stats['images_copied']}")
     print("="*60)
 
 

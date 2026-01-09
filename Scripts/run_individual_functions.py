@@ -19,20 +19,25 @@ def main():
     parser.add_argument('function', choices=['review', 'merge', 'upload', 'cleanup', 'browse'], 
                        help='Function to run: review, merge, upload, cleanup, or browse')
     parser.add_argument('--folder-name', help='Folder name to use as timestamp (for review, merge, and upload functions)')
+    parser.add_argument('--base-dir', choices=['events_output', 'dedup'], default='events_output',
+                       help='Base directory to use for review (events_output or dedup). Default: events_output')
     
     args = parser.parse_args()
     
     try:
         if args.function == 'review':
-            # Use folder_name as timestamp for review function
-            if not args.folder_name:
-                print("❌ Error: --folder-name is required for review function")
-                print("Usage: python run_individual_functions.py review --folder-name <folder_name>")
-                sys.exit(1)
+            # Determine base directory
+            if args.base_dir == 'dedup':
+                review_dir = Path('data/dedup')
+            else:
+                review_dir = Path('data/events_output')
             
-            run = Run(timestamp=args.folder_name)
-            print(f"🔍 Starting event review process for folder: {args.folder_name}")
-            run.handle_events_review(Path('data/events_output'))
+            run = Run(timestamp=args.folder_name if args.folder_name else "temp")
+            print(f"🔍 Starting event review process")
+            print(f"📁 Review directory: {review_dir}")
+            if args.folder_name:
+                print(f"📂 Folder name: {args.folder_name}")
+            run.handle_events_review(review_dir)
             print("✅ Event review completed!")
             
         elif args.function == 'merge':
