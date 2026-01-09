@@ -6,6 +6,7 @@ Step-by-step (Arishya's method):
 1. Run main.py with the blog you want to scrape
 2. then select from RSS feed, category scraping (pre-defined links), and your own link scrpaing
 3. then it'll get all details, location, and put them in timsetamp folder with relevant & non-relevant
+> To dedup across many folders, there's a script called "merge_and_dedup_2026.py", can run this once for the folders to dedup.
 4. you can review them in review UI app
 5. after you are done, you can validate them through validate script to make sure all images have local paths
 6. for images, you can resize them using image.py script 

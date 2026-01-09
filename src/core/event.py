@@ -250,6 +250,39 @@ class Event:
             return (place['formattedAddress'], place['location']['latitude'], place['location']['longitude'])
         else:
             return ('','','')
+    
+    def populate_planning_area_and_region(self) -> bool:
+        """Populate planning_area and region from coordinates if available.
+        
+        This method uses the which_district function to determine the planning area
+        and region based on the event's coordinates. It will only update fields
+        that are currently empty.
+        
+        Returns:
+            bool: True if planning_area or region was updated, False otherwise
+        """
+        if not self.longitude or not self.latitude:
+            return False
+        
+        try:
+            from src.services import which_district
+            if which_district is None:
+                return False
+            
+            pa, reg = which_district(self.longitude, self.latitude)
+            updated = False
+            
+            if pa and not self.planning_area:
+                self.planning_area = pa
+                updated = True
+            
+            if reg and not self.region:
+                self.region = reg
+                updated = True
+            
+            return updated
+        except Exception:
+            return False
 
 
     def get_images(self, output_dir: Optional[Path] = None) -> List[Dict[str, str]]:

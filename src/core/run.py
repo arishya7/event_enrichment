@@ -17,6 +17,12 @@ from src.core.event import Event
 from src.core.database import *
 from src.services import *
 from src.core.database import get_db_connection
+
+# Import which_district explicitly to ensure it's available
+try:
+    from src.services import which_district
+except (ImportError, AttributeError):
+    which_district = None
 import os
 from src.utils.file_utils import get_next_event_id
 from src.utils.output_filter import classify_content
@@ -571,15 +577,11 @@ class Run:
             if add_coord_result:
                 event_obj.address_display, event_obj.latitude, event_obj.longitude = add_coord_result
                 formatter.print_success(f"  Address: {event_obj.address_display[:50]}...", level=3)
-                try:
-                    if which_district:
-                        pa, reg = which_district(event_obj.longitude, event_obj.latitude)
-                        if pa:
-                            event_obj.planning_area = pa
-                        if reg:
-                            event_obj.region = reg
-                except Exception:
-                    pass
+                # Derive planning area and region from coordinates
+                if event_obj.populate_planning_area_and_region():
+                    formatter.print_success(f"  Planning area: {event_obj.planning_area}, Region: {event_obj.region}", level=3)
+                elif not which_district:
+                    formatter.print_warning("  which_district not available - planning_area/region not populated", level=3)
             
             # Download images
             event_obj.images = event_obj.get_images(self.image_dir / source_name)
@@ -781,18 +783,11 @@ class Run:
                         if add_coord_result:
                             event_obj.address_display, event_obj.latitude, event_obj.longitude = add_coord_result
                             formatter.print_success(f"Address & coordinates extracted: {event_obj.address_display}", level=3)
-                            # Derive planning area and region if available
-                            try:
-                                if 'which_district' in globals() or 'which_district' in dir():
-                                    pass
-                                if which_district:
-                                    pa, reg = which_district(event_obj.longitude, event_obj.latitude)
-                                    if pa:
-                                        event_obj.planning_area = pa
-                                    if reg:
-                                        event_obj.region = reg
-                            except Exception as _:
-                                pass
+                            # Derive planning area and region from coordinates
+                            if event_obj.populate_planning_area_and_region():
+                                formatter.print_success(f"Planning area: {event_obj.planning_area}, Region: {event_obj.region}", level=3)
+                            elif not which_district:
+                                formatter.print_warning("which_district not available - planning_area/region not populated", level=3)
                         else:
                             formatter.print_error("Address & coordinates not found", level=3)
                         
