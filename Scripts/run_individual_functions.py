@@ -66,7 +66,7 @@ def main():
             
             run = Run(timestamp=args.folder_name)
             print(f"📁 Using folder name: {args.folder_name}")
-            run.upload_to_s3(None)
+            run.upload_to_s3(None, use_dedup_folder=True)
             print("✅ S3 upload completed!")
                 
         elif args.function == 'cleanup':

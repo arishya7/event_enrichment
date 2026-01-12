@@ -618,8 +618,8 @@ class Run:
         # Merge and upload
         merged_file_path = self.merge_events()
         if merged_file_path:
-            self.upload_to_s3(merged_file_path)
-        
+            self.upload_to_s3(merged_file_path, use_dedup_folder=True)
+
         return relevant
 
     def start(self) -> None:
@@ -839,7 +839,7 @@ class Run:
         merged_file_path = self.merge_events()
 
         # Upload to S3 after successful processing
-        self.upload_to_s3(merged_file_path)
+        self.upload_to_s3(merged_file_path, use_dedup_folder=True)
 
         # Clean up temporary folders
         cleanup_temp_folders(self.feed_dir, self.articles_output_dir)
@@ -1001,38 +1001,61 @@ class Run:
             print(f"\n[Error] on Run.merge_events(): {str(e)}")
             raise
 
-    def upload_to_s3(self, merged_file_path: Optional[Path] = None) -> None:
+    def upload_to_s3(self, merged_file_path: Optional[Path] = None, use_dedup_folder: bool = False) -> None:
         """Upload processed files to AWS S3 using S3 service.
-        
+
         Uploads the timestamp directory containing all processed files and
         optionally the merged events file to AWS S3 for backup and sharing.
-        
+        Can optionally upload from the dedup folder instead.
+
         Args:
             merged_file_path (Optional[Path]): Path to the merged events file to upload
+            use_dedup_folder (bool): If True, prompts to upload from dedup folder instead
         """
         try:
             s3_client = S3()
-            
+
             # Check if there are files to upload
             if not self.timestamp_dir.exists() or not any(self.timestamp_dir.iterdir()):
                 formatter.print_warning("No files found to upload to S3")
                 return
-                
+
+            # Check for dedup folder
+            dedup_base = Path("data/dedup")
+            upload_dir = self.timestamp_dir
+            base_dir = self.events_output_dir
+
+            if use_dedup_folder and dedup_base.exists():
+                # Find the most recent dedup folder
+                dedup_folders = sorted([f for f in dedup_base.iterdir() if f.is_dir()], reverse=True)
+                if dedup_folders:
+                    dedup_folder = dedup_folders[0]
+                    formatter.print_section("AWS S3 Upload")
+                    formatter.print_info("Dedup folder detected!")
+                    formatter.print_item(f"📁 Regular folder: {self.timestamp_dir}")
+                    formatter.print_item(f"📁 Dedup folder: {dedup_folder}")
+
+                    folder_choice = input("| Upload from (1) Regular folder or (2) Dedup folder? [1/2]: ").strip()
+                    if folder_choice == '2':
+                        upload_dir = dedup_folder
+                        base_dir = dedup_base.parent
+                        formatter.print_success(f"✅ Using dedup folder: {dedup_folder}")
+
             formatter.print_section("AWS S3 Upload")
             formatter.print_info("Ready to upload files to AWS S3:")
-            formatter.print_item(f"📁 Folder directory: {self.timestamp_dir}")
+            formatter.print_item(f"📁 Folder directory: {upload_dir}")
             if merged_file_path and merged_file_path.exists():
                 formatter.print_item(f"📄 Merged events file: {merged_file_path.name}")
-                
+
             upload_confirm = input("| Do you want to upload to S3? (Y/N): ").strip().upper()
             if upload_confirm != 'Y':
                 formatter.print_warning("S3 upload cancelled")
                 return
-                
-            # Upload timestamp directory
+
+            # Upload directory
             try:
-                s3_client.upload_directory(self.timestamp_dir, base_dir=self.events_output_dir)
-                formatter.print_success(f"✅ Successfully uploaded directory: {self.timestamp_dir}")
+                s3_client.upload_directory(upload_dir, base_dir=base_dir)
+                formatter.print_success(f"✅ Successfully uploaded directory: {upload_dir}")
             except Exception as e:
                 formatter.print_error(f"Failed to upload directory: {str(e)}")
                 raise
@@ -1060,4 +1083,4 @@ if __name__ == "__main__":
     # For testing specific functionality
     # run.start()  # Uncomment to run full workflow
     file_path = run.merge_events()
-    run.upload_to_s3(file_path)
+    run.upload_to_s3(file_path, use_dedup_folder=True)

@@ -375,7 +375,7 @@ python json_to_csv.py [json_folder] [output_csv]
 ```
 
 #### Download Missing Images
-```bash
+```bas 
 python download_missing_images.py [json_folder] [images_folder]
 ```
 
